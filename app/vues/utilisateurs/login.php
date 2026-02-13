@@ -1,65 +1,5 @@
 <?php
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-
-    $email = $_POST['email'] ?? '';
-    $password = $_POST['password'] ?? '';
-
-    if (empty($email) || empty($password)) {
-        $error = "Tous les champs sont requis.";
-    } else {
-        $host = "localhost";
-        $user = "root";
-        $pass = "";
-        $dbname = "fablab";
-
-        $conn = new mysqli($host, $user, $pass, $dbname);
-
-        if ($conn->connect_error) {
-            die("Erreur de connexion : " . $conn->connect_error);
-        }
-
-        $stmt = $conn->prepare("SELECT id, nom, mot_de_passe, role FROM connexion WHERE email = ?");
-        $stmt->bind_param("s", $email);
-        $stmt->execute();
-        $stmt->store_result();
-
-        if ($stmt->num_rows === 1) {
-            $stmt->bind_result($id, $nom, $hashedPassword, $role);
-            $stmt->fetch();
-
-            if (password_verify($password, $hashedPassword)) {
-                $_SESSION['utilisateur_id'] = $id;
-                $_SESSION['utilisateur_nom'] = $nom;
-                $_SESSION['utilisateur_email'] = $email;
-                $_SESSION['utilisateur_role'] = !empty($role) ? $role : 'Utilisateur';
-
-                
-                $initiales = '';
-                if (!empty($nom)) {
-                    $parts = preg_split('/\s+/', trim($nom));
-                    $initiales = (count($parts) >= 2)
-                        ? strtoupper(substr($parts[0], 0, 1) . substr(end($parts), 0, 1))
-                        : strtoupper(substr($parts[0], 0, 2));
-                } else {
-                    $initiales = 'US';
-                }
-                $_SESSION['utilisateur_avatar'] = "https://via.placeholder.com/40/232e59/ffffff?text=" . $initiales;
-
-                
-                header("Location: ?page=accueil");
-                exit;
-            } else {
-                $error = "Mot de passe incorrect.";
-            }
-        } else {
-            $error = "Aucun compte trouvé avec cet email.";
-        }
-
-        $stmt->close();
-        $conn->close();
-    }
-}
+$baseUrl = $GLOBALS['baseUrl'] ?? '/Fablabrobot/public/';
 ?>
 
 <!DOCTYPE html>
@@ -71,30 +11,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="../public/css/utilisateurs.css">
+    <link rel="stylesheet" href="<?= $baseUrl ?>css/utilisateurs.css">
+    <link rel="stylesheet" href="<?= $baseUrl ?>css/footer.css">
 </head>
 <body>
 
 <div class="particles" id="particles"></div>
 
-<header class="header">
-    <div class="nav-container">
-        <div class="logo-section">
-            <img src="../public/images/global/ajc_logo_blanc.png" alt="Logo FABLAB" class="navbar-logo" />
-            <a href="?page=accueil" class="brand-name">FABLAB ROBOTIQUE</a>
-        </div>
-    </div>
-</header>
+<?php include __DIR__ . '/../parties/header-auth.php'; ?>
 
 <main class="main-container">
     <div class="registration-card">
-        <h2 class="card-title">Se connecter</h2>
+        <h1 class="card-title">Se connecter</h1>
 
-        <?php if (isset($error)): ?>
-            <div class="message error"><i class="fas fa-exclamation-circle"></i> <?= htmlspecialchars($error) ?></div>
+        <?php if (!empty($error)): ?>
+            <div class="message error">
+                <i class="fas fa-exclamation-circle"></i> <?= htmlspecialchars($error) ?>
+            </div>
         <?php endif; ?>
 
-        <form id="loginForm" method="POST" action="">
+        <?php if (!empty($_SESSION['success'])): ?>
+            <div class="message success">
+                <i class="fas fa-check-circle"></i> <?= htmlspecialchars($_SESSION['success']) ?>
+            </div>
+            <?php unset($_SESSION['success']); ?>
+        <?php endif; ?>
+
+        <form id="loginForm" method="POST" action="?page=login">
             <div class="form-group">
                 <label for="email" class="form-label">Adresse email</label>
                 <div class="input-group">
@@ -130,9 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 </main>
 
-<footer class="footer">
-    <p>&copy; 2025 FSR. Tous droits réservés.</p>
-</footer>
+<?php include __DIR__ . '/../parties/footer.php'; ?>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {

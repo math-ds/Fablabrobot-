@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../../config/database.php';
 
 class ProfilControleur
 {
@@ -12,7 +12,7 @@ class ProfilControleur
     }
 
     
-    private function getUserById(int $id): ?array
+    private function obtenirUtilisateurParId(int $id): ?array
     {
         $stmt = $this->db->prepare("SELECT id, nom, email, role, photo, date_creation, mot_de_passe FROM connexion WHERE id = ?");
         $stmt->execute([$id]);
@@ -29,7 +29,7 @@ class ProfilControleur
         }
 
         $id = (int) $_SESSION['utilisateur_id'];
-        $user = $this->getUserById($id);
+        $user = $this->obtenirUtilisateurParId($id);
 
         if (!$user) {
             echo "<h2>Utilisateur introuvable.</h2>";
@@ -46,7 +46,7 @@ class ProfilControleur
     }
 
   
-    public function updatePhoto(): void
+    public function mettreAJourPhoto(): void
     {
         if (empty($_SESSION['utilisateur_id'])) {
             header('Location: ?page=login');
@@ -54,7 +54,7 @@ class ProfilControleur
         }
 
         $id = (int) $_SESSION['utilisateur_id'];
-        $user = $this->getUserById($id);
+        $user = $this->obtenirUtilisateurParId($id);
 
         if (!$user) {
             $_SESSION['message'] = "Utilisateur introuvable.";

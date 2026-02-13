@@ -2,25 +2,30 @@
 
 $GLOBALS['baseUrl'] = $GLOBALS['baseUrl'] ?? '/Fablabrobot/public/';
 
+function extractYoutubeId(string $url): ?string {
+    $patterns = [
+        '/(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/',
+        '/(?:https?:\/\/)?(?:www\.)?youtu\.be\/([a-zA-Z0-9_-]{11})/',
+        '/(?:https?:\/\/)?(?:www\.)?youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/'
+    ];
+    foreach ($patterns as $pattern) {
+        if (preg_match($pattern, $url, $matches)) {
+            return $matches[1];
+        }
+    }
+    return null;
+}
+
 require __DIR__ . '/../parties/header.php';
 
 
 $current = $current ?? null;
 $videos = $videos ?? [];
 $commentaires = $commentaires ?? [];
+$baseUrl = $GLOBALS['baseUrl'];
 ?>
 
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>WebTV - FABLAB</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="<?= $GLOBALS['baseUrl'] ?>css/webtv.css" />
-</head>
-
-<body>
+<link rel="stylesheet" href="<?= $baseUrl ?>css/webtv.css" />
 
 <?php if (!empty($_SESSION['message'])): ?>
   <div class="alert-message alert-<?= htmlspecialchars($_SESSION['message_type'] ?? 'info') ?>">
@@ -66,9 +71,10 @@ $commentaires = $commentaires ?? [];
     
     <div class="video-player-wrapper">
       <div class="video-player">
-        <?php if ($current && !empty($current['type']) && $current['type'] === 'youtube' && !empty($current['youtube_id'])): ?>
+        <?php if ($current && !empty($current['type']) && $current['type'] === 'youtube' && !empty($current['youtube_url'])): ?>
+          <?php $currentYoutubeId = extractYoutubeId($current['youtube_url']); ?>
           <iframe
-            src="https://www.youtube.com/embed/<?= htmlspecialchars($current['youtube_id']) ?>?autoplay=1"
+            src="https://www.youtube.com/embed/<?= htmlspecialchars($currentYoutubeId) ?>?autoplay=1"
             title="<?= htmlspecialchars($current['titre'] ?? 'Vidéo') ?>"
             allowfullscreen
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture">
@@ -242,8 +248,9 @@ $commentaires = $commentaires ?? [];
         <?php foreach ($videos as $video): ?>
           <a href="?page=webtv&video=<?= (int)$video['id'] ?>" class="video-card">
             <div class="video-thumbnail">
-              <?php if (!empty($video['type']) && $video['type'] === 'youtube' && !empty($video['youtube_id'])): ?>
-                <img src="https://img.youtube.com/vi/<?= htmlspecialchars($video['youtube_id']) ?>/hqdefault.jpg" 
+              <?php if (!empty($video['type']) && $video['type'] === 'youtube' && !empty($video['youtube_url'])): ?>
+                <?php $youtubeId = extractYoutubeId($video['youtube_url']); ?>
+                <img src="https://img.youtube.com/vi/<?= htmlspecialchars($youtubeId) ?>/hqdefault.jpg"
                      alt="<?= htmlspecialchars($video['titre'] ?? 'Vidéo') ?>">
               <?php elseif (!empty($video['vignette'])): ?>
                 <img src="<?= $GLOBALS['baseUrl'] ?>uploads/vignettes/<?= htmlspecialchars($video['vignette']) ?>" 

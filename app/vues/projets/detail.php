@@ -13,7 +13,21 @@
             <div class="project-header">
                 <div class="project-image">
                     <?php if (isset($projet['image_url']) && trim($projet['image_url']) !== ''): ?>
-                        <img src="../public/images/projets/<?= htmlspecialchars($projet['image_url']); ?>" 
+                        <?php
+                        // Construire le bon chemin d'image
+                        $imageSrc = '';
+                        if (str_starts_with($projet['image_url'], 'http://') || str_starts_with($projet['image_url'], 'https://')) {
+                            // URL externe
+                            $imageSrc = $projet['image_url'];
+                        } elseif (str_starts_with($projet['image_url'], 'images/')) {
+                            // Chemin complet (images/projets/...)
+                            $imageSrc = $projet['image_url'];
+                        } else {
+                            // Juste le nom du fichier - ajouter le préfixe
+                            $imageSrc = 'images/projets/' . $projet['image_url'];
+                        }
+                        ?>
+                        <img src="<?= htmlspecialchars($imageSrc); ?>"
                              alt="<?= htmlspecialchars($projet['title']); ?>"
                              onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">
                         <i class="fas fa-code" style="display:none;"></i>
@@ -84,9 +98,9 @@
                     <div class="features-section">
                         <h2><i class="fas fa-cogs"></i> Fonctionnalités principales</h2>
                         <div class="features-grid">
-                            <?php 
-                            $features = explode('|', $projet['features']);
-                            foreach ($features as $feature): 
+                            <?php
+                            $features = explode(',', $projet['features']);
+                            foreach ($features as $feature):
                                 $feature = trim($feature);
                                 if ($feature !== ''): ?>
                                     <div class="feature-card">

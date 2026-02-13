@@ -1,0 +1,96 @@
+/* Fichier vidé - Toutes les règles sont maintenant dans admin-common.css */
+
+/* ==========================================
+   APERÇU D'IMAGE DANS LES MODALES ARTICLES
+   ========================================== */
+
+#conteneurApercuImage {
+  display: none;
+  margin-top: 15px;
+}
+
+.preview-label {
+  color: #00afa7;
+  font-weight: 600;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.preview-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+#apercuImage {
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: 10px;
+  border: 2px solid #00afa7;
+  display: none;
+  transition: all 0.3s ease;
+}
+
+#apercuImage:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 15px rgba(0, 175, 167, 0.3);
+  border-color: #00afa7;
+}
+
+#spinnerChargementImage {
+  display: none;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.7);
+  padding: 20px;
+  border-radius: 10px;
+  color: #00afa7;
+  font-size: 2rem;
+}
+
+#erreurApercuImage {
+  display: none;
+  background: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  padding: 12px;
+  border-radius: 8px;
+  color: #ff6b6b;
+  margin-top: 15px;
+}
+
+#erreurApercuImage i {
+  font-size: 1.2rem;
+  margin-right: 8px;
+}
+
+/* ==========================================
+   CENTRAGE DES IMAGES DANS LES TABLEAUX ARTICLES
+   ========================================== */
+
+.table-image-cell {
+  text-align: center !important;
+}
+
+.table-image-cell .image-container,
+.table-image-cell .modern-placeholder,
+.table-image-cell .no-image {
+  display: block;
+  margin: 0 auto;
+  text-align: center;
+}
+
+/* ==========================================
+   ANIMATIONS POUR LES IMAGES DANS LES TABLEAUX
+   ========================================== */
+
+.article-thumb {
+  transition: all 0.3s ease;
+}
+
+.article-thumb:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 15px rgba(0, 175, 167, 0.3);
+}

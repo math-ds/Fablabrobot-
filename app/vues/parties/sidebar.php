@@ -1,24 +1,12 @@
 <?php
-
 $current_page = $_GET['page'] ?? 'admin';
-
 
 function isActive($page, $current_page) {
     return $page === $current_page ? 'active' : '';
 }
 ?>
 
-<aside class="sidebar">
-  <div>
-   
-    <div class="sidebar-logo">
-      <a href="/fablabrobot/public/?page=accueil" class="sidebar-logo">
-        <img src="../public/images/global/ajc_logo_blanc.png" alt="AJC Logo">
-      </a>
-    </div>
-
-    
-    <nav class="sidebar-nav">
+<nav class="sidebar-nav">
   <a href="?page=admin" class="<?= isActive('admin', $current_page) ?>">
     <i class="fas fa-home"></i> Dashboard
   </a>
@@ -40,13 +28,10 @@ function isActive($page, $current_page) {
   <a href="?page=admin-comments" class="<?= isActive('admin-comments', $current_page) ?>">
     <i class="fas fa-comment"></i> Commentaires
   </a>
+  <a href="?page=admin-corbeille" class="<?= isActive('admin-corbeille', $current_page) ?>">
+    <i class="fas fa-trash-alt"></i> Corbeille
+  </a>
+  <a href="?page=admin-cache" class="<?= isActive('admin-cache', $current_page) ?>">
+    <i class="fas fa-database"></i> Cache
+  </a>
 </nav>
-
-  </div>
-
-  <div class="sidebar-footer">
-    <a href="?page=logout" class="logout-btn">
-      <i class="fas fa-sign-out-alt"></i> Déconnexion
-    </a>
-  </div>
-</aside>

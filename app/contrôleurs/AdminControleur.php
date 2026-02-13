@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../modèles/AdminModele.php';
 
 class AdminControleur {
@@ -19,7 +19,7 @@ class AdminControleur {
     }
 
    
-    $projects = $this->modele->getAllProjects();
+    $projects = $this->modele->obtenirTousLesProjets();
     $total_projects = count($projects);
 
     

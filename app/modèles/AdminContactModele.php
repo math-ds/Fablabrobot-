@@ -1,26 +1,55 @@
 <?php
-require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../../config/database.php';
 
 class AdminContactModele
 {
-    private PDO $db;
-    public function __construct() { $this->db = getDatabase(); }
+    private PDO $baseDeDonnees;
+    public function __construct() { $this->baseDeDonnees = getDatabase(); }
 
-    public function all(): array
+    public function tousLesElements(): array
     {
-        $sql = "SELECT * FROM contact_messages ORDER BY date_envoi DESC";
-        return $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+        $sql = "SELECT * FROM contact_messages WHERE deleted_at IS NULL ORDER BY date_envoi DESC";
+        return $this->baseDeDonnees->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function updateStatut(int $id, string $statut): bool
+    public function mettreAJourStatut(int $id, string $statut): bool
     {
-        $stmt = $this->db->prepare("UPDATE contact_messages SET statut = :statut, date_lecture = NOW() WHERE id = :id");
-        return $stmt->execute([':id' => $id, ':statut' => $statut]);
+        $requete = $this->baseDeDonnees->prepare("UPDATE contact_messages SET statut = :statut, date_lecture = NOW() WHERE id = :id");
+        return $requete->execute([':id' => $id, ':statut' => $statut]);
     }
 
-    public function delete(int $id): bool
+    public function supprimer(int $id): bool
     {
-        $stmt = $this->db->prepare("DELETE FROM contact_messages WHERE id = :id");
-        return $stmt->execute([':id' => $id]);
+        $requete = $this->baseDeDonnees->prepare("UPDATE contact_messages SET deleted_at = NOW() WHERE id = :id");
+        return $requete->execute([':id' => $id]);
+    }
+
+    /**
+     * Suppression définitive d'un message de contact (hard delete)
+     * À utiliser avec précaution
+     */
+    public function supprimerDefinitivement(int $id): bool
+    {
+        $requete = $this->baseDeDonnees->prepare("DELETE FROM contact_messages WHERE id = :id");
+        return $requete->execute([':id' => $id]);
+    }
+
+    /**
+     * Restaurer un message de contact supprimé
+     */
+    public function restaurer(int $id): bool
+    {
+        $requete = $this->baseDeDonnees->prepare("UPDATE contact_messages SET deleted_at = NULL WHERE id = :id");
+        return $requete->execute([':id' => $id]);
+    }
+
+    /**
+     * Récupérer tous les messages de contact supprimés (dans la corbeille)
+     */
+    public function elementsSupprimes(): array
+    {
+        $sql = "SELECT id, nom, email, sujet, message, date_envoi, deleted_at
+                FROM contact_messages WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC";
+        return $this->baseDeDonnees->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     }
 }

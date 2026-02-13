@@ -1,212 +1,158 @@
-:root {
-  --primary-color: #00afa7;
-  --primary-color-light: rgba(0, 175, 167, 0.15);
-  --primary-color-lighter: rgba(0, 175, 167, 0.1);
-  --primary-color-border: rgba(0, 175, 167, 0.3);
-  --background-gradient-start: #191a28;
-  --background-gradient-end: #232e59;
-  --text-color-light: #f5f5f5;
-  --text-color-muted: rgba(245, 245, 245, 0.7);
-  --card-bg: rgba(255, 255, 255, 0.08);
-  --card-border: rgba(0, 175, 167, 0.2);
-}
+/**
+ * ============================================
+ * UTILISATEURS - UTILISATEURS.CSS
+ * Styles pour les pages d'authentification (login/inscription)
+ * ============================================
+ */
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font-family:
-    "Inter",
-    -apple-system,
-    BlinkMacSystemFont,
-    sans-serif;
-  background: linear-gradient(
-    135deg,
-    var(--background-gradient-start) 0%,
-    var(--background-gradient-end) 100%
-  );
-  color: var(--text-color-light);
-  min-height: 100vh;
-  overflow-x: hidden;
-  line-height: 1.6;
-}
-
+/* ==========================================
+   PARTICULES ANIMÉES
+   ========================================== */
 .particles {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  pointer-events: none;
+  overflow: hidden;
   z-index: 0;
+  pointer-events: none;
 }
 
 .particle {
   position: absolute;
-  width: 2px;
-  height: 2px;
-  background: var(--primary-color);
+  width: 4px;
+  height: 4px;
+  background: rgba(0, 175, 167, 0.3);
   border-radius: 50%;
-  opacity: 0.7;
-  animation: float 6s infinite linear;
+  animation: float 6s infinite ease-in-out;
 }
 
 @keyframes float {
-  0% {
-    transform: translateY(100vh) rotate(0deg);
-    opacity: 0;
-  }
-  10% {
-    opacity: 0.7;
-  }
-  90% {
-    opacity: 0.7;
-  }
-  100% {
-    transform: translateY(-100px) rotate(360deg);
-    opacity: 0;
-  }
+  0%, 100% { transform: translateY(0) translateX(0); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(-100vh) translateX(100px); opacity: 0; }
 }
 
-.header {
-  background: rgba(25, 26, 40, 0.95);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--card-border);
-  padding: 15px 0;
+/* ==========================================
+   CONTENEUR PRINCIPAL
+   ========================================== */
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #191a28 0%, #232e59 100%);
+  font-family: 'Inter', sans-serif;
   position: relative;
-  z-index: 100;
-}
-
-.nav-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.logo-section {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.navbar-logo {
-  height: 40px;
-  width: auto;
-}
-
-.brand-name {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--primary-color);
-  text-decoration: none;
-}
-
-.brand-name:hover {
-  color: #008a83;
-  transition: color 0.3s ease;
 }
 
 .main-container {
+  min-height: calc(100vh - 80px);
   display: flex;
-  justify-content: center;
   align-items: center;
-  min-height: calc(100vh - 120px);
+  justify-content: center;
   padding: 40px 20px;
   position: relative;
-  z-index: 10;
+  z-index: 1;
 }
 
+/* ==========================================
+   CARTE D'INSCRIPTION/CONNEXION
+   ========================================== */
 .registration-card {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(0, 175, 167, 0.2);
   border-radius: 20px;
-  padding: 40px;
+  padding: 50px 40px;
+  max-width: 480px;
   width: 100%;
-  max-width: 450px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(10px);
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
-  animation: slideUp 0.6s ease-out;
   position: relative;
-  overflow: hidden;
-}
-
-.registration-card::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--primary-color) 0%, #008a83 100%);
+  z-index: 2;
 }
 
 .card-title {
-  text-align: center;
   font-size: 2rem;
   font-weight: 700;
-  color: var(--primary-color);
+  color: #00afa7;
+  text-align: center;
   margin-bottom: 30px;
-  position: relative;
+  margin-top: 0;
 }
 
-.card-title::after {
-  content: "";
-  position: absolute;
-  bottom: -10px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 50px;
-  height: 2px;
-  background: var(--primary-color);
-  border-radius: 2px;
+/* ==========================================
+   MESSAGES (SUCCÈS / ERREUR)
+   ========================================== */
+.message {
+  padding: 15px 20px;
+  border-radius: 10px;
+  margin-bottom: 25px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.95rem;
+  font-weight: 500;
 }
 
+.message i {
+  font-size: 1.2rem;
+}
+
+.message.success {
+  background: rgba(76, 175, 80, 0.15);
+  border: 1px solid rgba(76, 175, 80, 0.4);
+  color: #4ade80;
+}
+
+.message.error {
+  background: rgba(255, 107, 107, 0.15);
+  border: 1px solid rgba(255, 107, 107, 0.4);
+  color: #ff6b6b;
+}
+
+/* ==========================================
+   FORMULAIRE
+   ========================================== */
 .form-group {
   margin-bottom: 25px;
-  position: relative;
 }
 
 .form-label {
   display: block;
   font-weight: 600;
-  color: var(--text-color-light);
-  margin-bottom: 8px;
+  color: #f5f5f5;
+  margin-bottom: 10px;
   font-size: 0.95rem;
+}
+
+.input-group {
+  position: relative;
 }
 
 .form-input {
   width: 100%;
-  padding: 15px 20px;
-  padding-right: 50px;
+  padding: 14px 45px 14px 15px;
   background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(0, 175, 167, 0.2);
   border-radius: 10px;
-  color: var(--text-color-light);
+  color: #f5f5f5;
+  font-family: 'Inter', sans-serif;
   font-size: 1rem;
   transition: all 0.3s ease;
-  position: relative;
+  box-sizing: border-box;
 }
 
 .form-input:focus {
   outline: none;
-  border-color: var(--primary-color);
+  border-color: #00afa7;
   background: rgba(255, 255, 255, 0.08);
   box-shadow: 0 0 0 3px rgba(0, 175, 167, 0.1);
 }
 
 .form-input::placeholder {
-  color: var(--text-color-muted);
-}
-
-.input-group {
-  position: relative;
-  transition: transform 0.2s ease;
+  color: rgba(245, 245, 245, 0.4);
 }
 
 .input-icon {
@@ -214,188 +160,75 @@ body {
   right: 15px;
   top: 50%;
   transform: translateY(-50%);
-  color: var(--text-color-muted);
-  transition: all 0.3s ease;
+  color: rgba(0, 175, 167, 0.6);
+  font-size: 1rem;
   pointer-events: none;
 }
 
-.form-input:focus + .input-icon {
-  color: var(--primary-color);
-}
-
+/* ==========================================
+   BOUTON DE SOUMISSION
+   ========================================== */
 .submit-btn {
   width: 100%;
-  padding: 15px;
-  background: var(--primary-color);
+  padding: 15px 30px;
+  background: #00afa7;
   color: white;
-  border: none;
+  border: 2px solid #00afa7;
   border-radius: 10px;
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 1.05rem;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
+  margin-top: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
+  font-family: 'Inter', sans-serif;
 }
 
 .submit-btn:hover {
-  background: #008a83;
+  background: #008f88;
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 175, 167, 0.4);
+  box-shadow: 0 8px 20px rgba(0, 175, 167, 0.4);
 }
 
 .submit-btn:active {
   transform: translateY(0);
 }
 
-.submit-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-}
-
+/* ==========================================
+   LIENS (MOT DE PASSE OUBLIÉ, INSCRIPTION)
+   ========================================== */
 .login-link {
   text-align: center;
-  margin-top: 25px;
-  padding-top: 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 20px;
+  color: rgba(245, 245, 245, 0.7);
 }
 
 .login-link p {
-  color: var(--text-color-muted);
-  margin-bottom: 10px;
+  margin: 5px 0;
   font-size: 0.95rem;
 }
 
 .login-link a {
-  color: var(--primary-color);
+  color: #00afa7;
   text-decoration: none;
   font-weight: 600;
   transition: all 0.3s ease;
 }
 
 .login-link a:hover {
-  color: #008a83;
+  color: #00d4c9;
   text-decoration: underline;
 }
 
-.footer {
-  background: rgba(25, 26, 40, 0.95);
-  border-top: 1px solid var(--card-border);
-  text-align: center;
-  padding: 20px;
-  color: var(--text-color-muted);
-  position: relative;
-  z-index: 100;
-}
-
-.message {
-  padding: 12px 15px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  font-size: 0.9rem;
-  font-weight: 500;
-}
-
-.message.error {
-  background: rgba(220, 53, 69, 0.1);
-  border: 1px solid rgba(220, 53, 69, 0.3);
-  color: #ff6b6b;
-}
-
-.message.success {
-  background: rgba(40, 167, 69, 0.1);
-  border: 1px solid rgba(40, 167, 69, 0.3);
-  color: #51cf66;
-}
-
-.loading {
-  display: inline-block;
-  width: 20px;
-  height: 20px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 50%;
-  border-top-color: #fff;
-  animation: spin 1s ease-in-out infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.form-input.invalid {
-  border-color: #ff6b6b;
-  background: rgba(220, 53, 69, 0.05);
-}
-
-.form-input.valid {
-  border-color: #51cf66;
-  background: rgba(40, 167, 69, 0.05);
-}
-
-.validation-message {
-  font-size: 0.8rem;
-  margin-top: 5px;
-  display: none;
-}
-
-.validation-message.error {
-  color: #ff6b6b;
-  display: block;
-}
-
-.validation-message.success {
-  color: #51cf66;
-  display: block;
-}
-
-@media (max-width: 768px) {
+/* ==========================================
+   RESPONSIVE
+   ========================================== */
+@media (max-width: 576px) {
   .registration-card {
-    margin: 20px;
-    padding: 30px 25px;
-  }
-
-  .card-title {
-    font-size: 1.8rem;
-  }
-
-  .nav-container {
-    padding: 0 15px;
-  }
-
-  .brand-name {
-    font-size: 1.3rem;
-  }
-
-  .main-container {
-    padding: 20px 15px;
-  }
-}
-
-@media (max-width: 480px) {
-  .registration-card {
-    padding: 25px 20px;
-  }
-
-  .main-container {
-    padding: 20px 10px;
+    padding: 35px 25px;
   }
 
   .card-title {
@@ -403,19 +236,25 @@ body {
   }
 
   .form-input {
-    padding: 12px 15px;
-    padding-right: 45px;
+    padding: 12px 40px 12px 12px;
   }
 
   .submit-btn {
-    padding: 12px;
-    font-size: 0.95rem;
+    padding: 13px 25px;
+    font-size: 1rem;
   }
 }
 
-@media (max-width: 320px) {
-  .registration-card {
-    margin: 10px;
+@media (max-width: 400px) {
+  .main-container {
     padding: 20px 15px;
+  }
+
+  .registration-card {
+    padding: 30px 20px;
+  }
+
+  .card-title {
+    font-size: 1.4rem;
   }
 }

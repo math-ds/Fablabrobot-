@@ -1,17 +1,17 @@
 <?php
-require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../../config/database.php';
 
 class CommentairesVideoModele
 {
-    private PDO $db;
+    private PDO $baseDeDonnees;
 
     public function __construct()
     {
-        $this->db = getDatabase();
+        $this->baseDeDonnees = getDatabase();
     }
 
  
-    public function listForVideo(int $videoId): array
+    public function listerPourVideo(int $videoId): array
     {
         $sql = "SELECT 
                     c.id, c.texte, c.created_at, c.user_id, c.video_id,
@@ -22,19 +22,19 @@ class CommentairesVideoModele
                 WHERE c.video_id = :video_id
                 ORDER BY c.created_at DESC";
 
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([':video_id' => $videoId]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $requete = $this->baseDeDonnees->prepare($sql);
+        $requete->execute([':video_id' => $videoId]);
+        return $requete->fetchAll(PDO::FETCH_ASSOC);
     }
 
     
-    public function create(int $videoId, int $userId, string $texte): bool
+    public function creer(int $videoId, int $userId, string $texte): bool
     {
         $sql = "INSERT INTO commentaires (video_id, user_id, texte, created_at)
                 VALUES (:video_id, :user_id, :texte, NOW())";
 
-        $stmt = $this->db->prepare($sql);
-        return $stmt->execute([
+        $requete = $this->baseDeDonnees->prepare($sql);
+        return $requete->execute([
             ':video_id' => $videoId,
             ':user_id' => $userId,
             ':texte' => $texte
@@ -42,9 +42,9 @@ class CommentairesVideoModele
     }
 
   
-    public function delete(int $id): bool
+    public function supprimer(int $id): bool
     {
-        $stmt = $this->db->prepare("DELETE FROM commentaires WHERE id = :id");
-        return $stmt->execute([':id' => $id]);
+        $requete = $this->baseDeDonnees->prepare("DELETE FROM commentaires WHERE id = :id");
+        return $requete->execute([':id' => $id]);
     }
 }

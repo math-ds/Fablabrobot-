@@ -66,28 +66,36 @@ include(__DIR__ . '/../parties/header.php');
       
       <div class="project-detail">
 
-       
-        <div class="project-header">
-          <?php if (!empty($article['image'])): ?>
-            <img src="<?= $GLOBALS['baseUrl'] ?>uploads/<?= htmlspecialchars($article['image']) ?>" alt="Image article" class="project-image">
-          <?php endif; ?>
-
-          <div class="project-header-content">
-            <h1 class="project-title"><?= htmlspecialchars($article['titre']) ?></h1>
-
-            <div class="project-meta">
-              <div class="meta-item">✍️ <?= htmlspecialchars($article['auteur']) ?></div>
-              <div class="meta-item">📅 <?= date('d M Y', strtotime($article['created_at'])) ?></div>
-              <div class="status-badge">Article</div>
-            </div>
+        <!-- Image en pleine largeur -->
+        <?php if (!empty($article['image_url'])): ?>
+          <div style="margin-bottom: 2rem; width: 100%; overflow: hidden; border-radius: 12px;">
+            <?php
+            // Construire le bon chemin d'image
+            $imageSrc = '';
+            if (str_starts_with($article['image_url'], 'http://') || str_starts_with($article['image_url'], 'https://')) {
+                // URL externe
+                $imageSrc = $article['image_url'];
+            } elseif (str_starts_with($article['image_url'], 'images/')) {
+                // Chemin complet (images/articles/...)
+                $imageSrc = $article['image_url'];
+            } else {
+                // Juste le nom du fichier - ajouter le préfixe
+                $imageSrc = 'images/articles/' . $article['image_url'];
+            }
+            ?>
+            <img src="<?= htmlspecialchars($imageSrc); ?>"
+                 alt="<?= htmlspecialchars($article['titre']); ?>"
+                 style="width: 100%; height: auto; max-height: 500px; object-fit: cover; display: block;">
           </div>
-        </div>
+        <?php endif; ?>
 
-      
+        <!-- Titre principal -->
+        <h1 class="project-title" style="margin-bottom: 2rem;"><?= htmlspecialchars($article['titre']) ?></h1>
+
         <div class="project-content">
           <div class="content-grid">
 
-            
+
             <div class="main-content">
               <div class="description-section">
                 <h2>📖 Contenu de l'article</h2>
@@ -127,41 +135,73 @@ include(__DIR__ . '/../parties/header.php');
               <?php endif; ?>
             </div>
 
-            
-            <div class="sidebar">
-              <h3>📋 Informations</h3>
 
-              <div class="info-item">
-                <div class="info-label">Statut</div>
-                <div class="info-value"><span class="status-badge">Publié</span></div>
+            <div class="sidebar" style="background: rgba(0, 175, 167, 0.05); border: 1px solid rgba(0, 175, 167, 0.3);">
+              <h3 style="color: #00afa7; font-size: 1.3rem; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid rgba(0, 175, 167, 0.3);">
+                <i class="fas fa-info-circle"></i> Informations
+              </h3>
+
+              <div style="margin-bottom: 1.2rem;">
+                <div style="display: flex; align-items: center; gap: 10px; color: rgba(245, 245, 245, 0.6); font-size: 0.85rem; margin-bottom: 5px;">
+                  <i class="fas fa-check-circle" style="color: #00afa7;"></i>
+                  <span>Statut</span>
+                </div>
+                <div style="padding-left: 24px;">
+                  <span style="background: rgba(0, 175, 167, 0.2); color: #00afa7; padding: 4px 12px; border-radius: 15px; font-size: 0.9rem; font-weight: 600;">
+                    Publié
+                  </span>
+                </div>
               </div>
 
-              <div class="info-item">
-                <div class="info-label">Auteur</div>
-                <div class="info-value"><?= htmlspecialchars($article['auteur']) ?></div>
+              <div style="margin-bottom: 1.2rem;">
+                <div style="display: flex; align-items: center; gap: 10px; color: rgba(245, 245, 245, 0.6); font-size: 0.85rem; margin-bottom: 5px;">
+                  <i class="fas fa-user" style="color: #00afa7;"></i>
+                  <span>Auteur</span>
+                </div>
+                <div style="padding-left: 24px; color: #f5f5f5; font-weight: 500;">
+                  <?= htmlspecialchars($article['auteur']) ?>
+                </div>
               </div>
 
-              <div class="info-item">
-                <div class="info-label">Date de création</div>
-                <div class="info-value"><?= date('d/m/Y', strtotime($article['created_at'])) ?></div>
+              <div style="margin-bottom: 1.2rem;">
+                <div style="display: flex; align-items: center; gap: 10px; color: rgba(245, 245, 245, 0.6); font-size: 0.85rem; margin-bottom: 5px;">
+                  <i class="fas fa-calendar-plus" style="color: #00afa7;"></i>
+                  <span>Date de création</span>
+                </div>
+                <div style="padding-left: 24px; color: #f5f5f5; font-weight: 500;">
+                  <?= date('d/m/Y', strtotime($article['created_at'])) ?>
+                </div>
               </div>
 
               <?php if (!empty($article['updated_at']) && $article['updated_at'] != $article['created_at']): ?>
-              <div class="info-item">
-                <div class="info-label">Dernière mise à jour</div>
-                <div class="info-value"><?= date('d/m/Y', strtotime($article['updated_at'])) ?></div>
+              <div style="margin-bottom: 1.2rem;">
+                <div style="display: flex; align-items: center; gap: 10px; color: rgba(245, 245, 245, 0.6); font-size: 0.85rem; margin-bottom: 5px;">
+                  <i class="fas fa-sync-alt" style="color: #00afa7;"></i>
+                  <span>Dernière mise à jour</span>
+                </div>
+                <div style="padding-left: 24px; color: #f5f5f5; font-weight: 500;">
+                  <?= date('d/m/Y', strtotime($article['updated_at'])) ?>
+                </div>
               </div>
               <?php endif; ?>
 
               <?php if (!empty($article['categorie'])): ?>
-              <div class="info-item">
-                <div class="info-label">Catégorie</div>
-                <div class="info-value"><?= htmlspecialchars($article['categorie']) ?></div>
+              <div style="margin-bottom: 1.2rem;">
+                <div style="display: flex; align-items: center; gap: 10px; color: rgba(245, 245, 245, 0.6); font-size: 0.85rem; margin-bottom: 5px;">
+                  <i class="fas fa-tag" style="color: #00afa7;"></i>
+                  <span>Catégorie</span>
+                </div>
+                <div style="padding-left: 24px; color: #f5f5f5; font-weight: 500;">
+                  <?= htmlspecialchars($article['categorie']) ?>
+                </div>
               </div>
               <?php endif; ?>
 
-              <div class="project-links">
-                <a href="?page=articles" class="project-link github">📚 Tous les articles</a>
+              <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid rgba(0, 175, 167, 0.2);">
+                <a href="?page=articles" style="display: flex; align-items: center; justify-content: center; gap: 10px; background: #00afa7; color: white; padding: 12px 20px; border-radius: 10px; text-decoration: none; font-weight: 600; transition: all 0.3s ease;">
+                  <i class="fas fa-arrow-left"></i>
+                  Tous les articles
+                </a>
               </div>
 
             </div>

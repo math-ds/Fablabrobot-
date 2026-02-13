@@ -1,0 +1,202 @@
+// ============================================================
+// _variables.scss — Variables globales du projet
+// Cohérence avec le système de design CSS global
+// ============================================================
+
+// ==========================================
+// COULEURS PRINCIPALES
+// ==========================================
+
+// Couleur primaire - Teal (Turquoise)
+$couleur-primaire: #00afa7;
+$couleur-primaire-fonce: #008b8a;
+$couleur-primaire-tres-fonce: #006b6a;
+$couleur-primaire-claire: #33c2bb;
+$couleur-primaire-tres-claire: #66d4cf;
+
+// Couleur secondaire - Bleu foncé
+$couleur-secondaire: #232e59;
+$couleur-secondaire-fonce: #1a2342;
+$couleur-secondaire-claire: #2f3d70;
+
+// Couleur de fond - Gris foncé
+$fond-sombre: #181a28;
+$fond-tres-sombre: #131a2b;
+$fond-navy: #1a2332;
+
+// ==========================================
+// COULEURS NEUTRES
+// ==========================================
+$blanc: #ffffff;
+$noir: #000000;
+$gris-50: #f9fafb;
+$gris-100: #f5f5f5;
+$gris-200: #e0e0e0;
+$gris-300: #d1d5db;
+$gris-400: #9ca3af;
+$gris-500: #8b92b0;
+$gris-600: #6b7280;
+$gris-700: #4b5563;
+$gris-800: #333333;
+$gris-900: #1f2937;
+
+// Anciens noms (compatibilité)
+$gris-clair: $gris-100;
+$gris-moyen: $gris-500;
+$gris-fonce: $gris-800;
+$gris-bordure: $gris-200;
+
+// ==========================================
+// COULEURS FONCTIONNELLES
+// ==========================================
+$couleur-succes: #4caf50;
+$couleur-succes-claire: #4ade80;
+$couleur-succes-fonce: #2d7a30;
+
+$couleur-danger: #d32f2f;
+$couleur-danger-claire: #ff5252;
+$couleur-danger-fonce: #b71c1c;
+
+$couleur-avertissement: #ffa500;
+$couleur-avertissement-claire: #ffb938;
+$couleur-avertissement-fonce: #e69500;
+
+$couleur-info: #2196f3;
+$couleur-info-claire: #64b5f6;
+$couleur-info-fonce: #1976d2;
+
+// ==========================================
+// TYPOGRAPHIE
+// ==========================================
+$police-principale: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+$taille-base: 1rem;
+
+// Tailles de police
+$taille-xs: 0.75rem;      // 12px
+$taille-sm: 0.875rem;     // 14px
+$taille-md: 1.125rem;     // 18px
+$taille-lg: 1.25rem;      // 20px
+$taille-xl: 1.5rem;       // 24px
+$taille-2xl: 2rem;        // 32px
+$taille-3xl: 2.5rem;      // 40px
+$taille-4xl: 3rem;        // 48px
+
+// Poids de police
+$font-normal: 400;
+$font-medium: 500;
+$font-semibold: 600;
+$font-bold: 700;
+$font-extrabold: 800;
+
+// Hauteurs de ligne
+$line-height-tight: 1.2;
+$line-height-normal: 1.5;
+$line-height-relaxed: 1.6;
+$line-height-loose: 1.8;
+
+// ==========================================
+// ESPACEMENTS
+// ==========================================
+$spacing-xs: 0.25rem;   // 4px
+$spacing-sm: 0.5rem;    // 8px
+$spacing-md: 1rem;      // 16px
+$spacing-lg: 1.5rem;    // 24px
+$spacing-xl: 2rem;      // 32px
+$spacing-2xl: 3rem;     // 48px
+$spacing-3xl: 4rem;     // 64px
+$spacing-4xl: 6rem;     // 96px
+
+// ==========================================
+// BORDER RADIUS
+// ==========================================
+$radius-sm: 4px;
+$radius-md: 8px;
+$radius-lg: 12px;
+$radius-xl: 15px;
+$radius-2xl: 20px;
+$radius-full: 9999px;
+$radius-circle: 50%;
+
+// Breakpoints (mobile first → min-width)
+$breakpoint-sm: 480px;
+$breakpoint-md: 768px;
+$breakpoint-lg: 1024px;
+$breakpoint-xl: 1400px;
+
+// Mixins responsive (mobile first)
+@mixin mobile-sm {
+  @media (min-width: $breakpoint-sm) {
+    @content;
+  }
+}
+
+@mixin tablette {
+  @media (min-width: $breakpoint-md) {
+    @content;
+  }
+}
+
+@mixin desktop {
+  @media (min-width: $breakpoint-lg) {
+    @content;
+  }
+}
+
+@mixin grand-ecran {
+  @media (min-width: $breakpoint-xl) {
+    @content;
+  }
+}
+
+// ==========================================
+// OMBRES
+// ==========================================
+$ombre-xs: 0 1px 2px rgba(0, 0, 0, 0.1);
+$ombre-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+$ombre-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+$ombre-lg: 0 6px 25px rgba(0, 0, 0, 0.15);
+$ombre-xl: 0 10px 40px rgba(0, 0, 0, 0.2);
+$ombre-2xl: 0 25px 50px rgba(0, 0, 0, 0.3);
+
+// Anciens noms (compatibilité)
+$ombre-legere: $ombre-sm;
+$ombre-moyenne: $ombre-md;
+$ombre-forte: $ombre-lg;
+
+// Ombres colorées
+$ombre-primaire: 0 10px 25px rgba(0, 175, 167, 0.3);
+$ombre-primaire-lg: 0 15px 35px rgba(0, 175, 167, 0.5);
+
+// ==========================================
+// TRANSITIONS
+// ==========================================
+$transition-fast: 0.15s ease;
+$transition-base: 0.3s ease;
+$transition-medium: 0.4s ease;
+$transition-slow: 0.6s ease;
+$transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+$transition-bounce: 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+// ==========================================
+// Z-INDEX
+// ==========================================
+$z-base: 1;
+$z-dropdown: 100;
+$z-sticky: 200;
+$z-fixed: 300;
+$z-modal-backdrop: 900;
+$z-modal: 1000;
+$z-popover: 1100;
+$z-tooltip: 1200;
+$z-notification: 1300;
+
+// ==========================================
+// AUTRES
+// ==========================================
+$backdrop-blur: blur(10px);
+$backdrop-blur-strong: blur(20px);
+
+// Dimensions communes
+$header-height: 80px;
+$sidebar-width: 250px;
+$sidebar-collapsed: 70px;

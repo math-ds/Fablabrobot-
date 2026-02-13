@@ -1,190 +1,62 @@
-:root {
-  --primary: #00afa7;
-  --bg1: #0d1224;
-  --bg2: #1a2240;
-  --card: rgba(255, 255, 255, 0.05);
-  --card-border: rgba(255, 255, 255, 0.12);
-  --text: #ffffff;
-  --muted: rgba(255, 255, 255, 0.7);
-}
-
-* {
-  box-sizing: border-box;
-}
-html,
-body {
-  height: 100%;
-}
-body {
-  margin: 0;
-  font-family:
-    Inter,
-    system-ui,
-    -apple-system,
-    Segoe UI,
-    Roboto,
-    "Helvetica Neue",
-    Arial,
-    "Noto Sans",
-    "Apple Color Emoji",
-    "Segoe UI Emoji",
-    "Segoe UI Symbol",
-    "Noto Color Emoji",
-    sans-serif;
-  color: var(--text);
-  background:
-    radial-gradient(1200px 600px at 50% -20%, #172045 0%, transparent 60%),
-    linear-gradient(180deg, var(--bg1) 0%, var(--bg2) 100%);
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding: 40px 16px;
-}
+/**
+ * ============================================
+ * AJOUTER - AJOUTER.CSS
+ * Styles pour les pages de création (articles/projets)
+ * Utilise le système de design global
+ * ============================================
+ */
 
 .creation-container {
-  width: min(960px, 100%);
-  background: var(--card);
-  border: 1px solid var(--card-border);
-  border-radius: 16px;
-  padding: 32px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(8px);
-  animation: pop 0.2s ease-out;
+  max-width: var(--container-lg);
+  margin: 0 auto;
+  padding: var(--spacing-4xl) var(--spacing-md);
 }
 
-@keyframes pop {
-  from {
-    transform: scale(0.98);
-    opacity: 0.6;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
+.creation-card {
+  background: var(--white-alpha-08);
+  border: 1px solid var(--primary-alpha-20);
+  border-radius: var(--radius-2xl);
+  padding: var(--spacing-3xl);
+  backdrop-filter: var(--backdrop-blur);
 }
 
-.creation-container h1 {
-  margin: 0 0 24px;
-  font-size: clamp(20px, 2.4vw, 32px);
+.creation-title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
   color: var(--primary);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.creation-container h1 i {
-  font-size: 1.2em;
+  margin-bottom: var(--spacing-2xl);
+  text-align: center;
 }
 
-.creation-form {
-  display: flex;
-  flex-direction: column;
-  gap: 22px;
-}
-
-.form-group label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 700;
-  color: var(--primary);
-  margin-bottom: 8px;
-}
-.req {
-  color: #ff9c66;
-}
-
-input[type="text"],
-textarea,
-input[type="file"] {
-  width: 100%;
-  border: 1px solid var(--card-border);
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--text);
-  border-radius: 12px;
-  padding: 12px 14px;
-  font-size: 16px;
-  outline: none;
-  transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease,
-    background 0.15s ease;
-}
-
-textarea {
-  min-height: 160px;
-  line-height: 1.55;
-  resize: vertical;
-}
-
-input[type="text"]:focus,
-textarea:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(0, 175, 167, 0.18);
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.hint {
-  margin: 8px 0 0;
-  color: var(--muted);
-  font-size: 0.92rem;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+/* Utilise les styles .form-group, .form-label, .form-input de _components.css */
+/* Utilise les boutons .btn .btn-primary de _components.css */
 
 .form-actions {
   display: flex;
+  gap: var(--gap-md);
   justify-content: flex-end;
-  gap: 12px;
-  margin-top: 8px;
+  margin-top: var(--spacing-2xl);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--white-alpha-10);
 }
 
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 700;
-  border-radius: 12px;
-  padding: 11px 18px;
-  text-decoration: none;
-  cursor: pointer;
-  border: 1px solid transparent;
-  transition:
-    transform 0.15s ease,
-    box-shadow 0.15s ease,
-    background 0.15s ease,
-    border-color 0.15s ease;
-  user-select: none;
+.image-preview {
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: var(--radius-md);
+  margin-top: var(--spacing-md);
 }
 
-.btn-primary {
-  background: var(--primary);
-  color: #071a1a;
-  box-shadow: 0 8px 24px rgba(0, 175, 167, 0.25);
-}
-.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 28px rgba(0, 175, 167, 0.35);
-}
-.btn-primary:active {
-  transform: translateY(0);
-}
-
-.btn-secondary {
-  background: rgba(255, 255, 255, 0.06);
-  color: #e9f7f7;
-  border-color: var(--card-border);
-}
-.btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.22);
-}
-
-@media (max-width: 720px) {
-  body {
-    padding: 24px 10px;
+@media (max-width: 768px) {
+  .creation-card {
+    padding: var(--spacing-xl);
   }
-  .creation-container {
-    padding: 22px;
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .form-actions .btn {
+    width: 100%;
   }
 }

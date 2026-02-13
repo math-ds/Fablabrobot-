@@ -3,9 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <title>Gestion des Utilisateurs - Admin FABLAB</title>
+  <?php require_once __DIR__ . '/../../helpers/CsrfHelper.php'; echo CsrfHelper::obtenirMetaJeton(); ?>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="css/admin.css">
+  <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="css/admin-common.css">
+  <link rel="stylesheet" href="css/admin-utilisateurs.css">
+  <link rel="stylesheet" href="css/toast-notification.css">
 </head>
 <body>
 
@@ -13,9 +17,11 @@
  
   <aside class="sidebar">
     <div>
-      <div class="sidebar-logo">
-        <a href="?page=admin"><img src="images/ajc_logo_blanc.png" alt="Logo AJC"></a>
-      </div>
+            <div class="sidebar-logo">
+                <a href="?page=admin">
+                    <img src="images/global/ajc_logo_blanc.png" alt="AJC Logo">
+                </a>
+            </div>
       <?php include __DIR__ . '/../parties/sidebar.php'; ?>
     </div>
     <div class="sidebar-footer">
@@ -24,10 +30,10 @@
   </aside>
 
  
-  <div class="main-content">
+  <main class="main-content">
     <header class="admin-header">
       <div class="search-bar">
-        <input type="text" id="searchInput" placeholder="Rechercher un utilisateur..." onkeyup="searchUsers()">
+        <input type="text" id="champRecherche" placeholder="Rechercher un utilisateur...">
       </div>
     </header>
 
@@ -36,209 +42,190 @@
 
     
       <?php if (!empty($_SESSION['message'])): ?>
-        <div class="alert alert-<?= $_SESSION['message_type'] ?>">
-          <i class="fas fa-<?= $_SESSION['message_type'] === 'success' ? 'check-circle' : 'exclamation-circle' ?>"></i>
-          <?= htmlspecialchars($_SESSION['message']) ?>
-        </div>
+        <script>
+          document.addEventListener('DOMContentLoaded', function() {
+            ToastNotification.<?= $_SESSION['message_type'] === 'success' ? 'succes' : 'erreur' ?>(
+              <?= json_encode($_SESSION['message'], JSON_UNESCAPED_UNICODE) ?>
+            );
+          });
+        </script>
         <?php unset($_SESSION['message'], $_SESSION['message_type']); ?>
       <?php endif; ?>
 
-      
-      <div class="stats-cards">
+      <!-- Cartes de statistiques standardisées -->
+      <div class="stats-grid">
         <div class="stat-card">
-          <div class="stat-card-header">
-            <i class="fas fa-users stat-card-icon"></i>
-          </div>
-          <div class="stat-card-value"><?= $stats['total_users'] ?></div>
-          <div class="stat-card-label">Total Utilisateurs</div>
+          <h3>Total Utilisateurs</h3>
+          <div class="value"><?= $stats['total_users'] ?></div>
         </div>
         <div class="stat-card">
-          <div class="stat-card-header">
-            <i class="fas fa-user-shield stat-card-icon"></i>
-          </div>
-          <div class="stat-card-value" style="color:#ff6b6b;"><?= $stats['admins'] ?></div>
-          <div class="stat-card-label">Administrateurs</div>
+          <h3>Administrateurs</h3>
+          <div class="value" style="color:#ff6b6b;"><?= $stats['admins'] ?></div>
         </div>
         <div class="stat-card">
-          <div class="stat-card-header">
-            <i class="fas fa-user-edit stat-card-icon"></i>
-          </div>
-          <div class="stat-card-value" style="color:#ffa500;"><?= $stats['editeurs'] ?></div>
-          <div class="stat-card-label">Éditeurs</div>
+          <h3>Éditeurs</h3>
+          <div class="value" style="color:#ffa500;"><?= $stats['editeurs'] ?></div>
         </div>
         <div class="stat-card">
-          <div class="stat-card-header">
-            <i class="fas fa-user stat-card-icon"></i>
-          </div>
-          <div class="stat-card-value" style="color:#4ade80;"><?= $stats['utilisateurs'] ?></div>
-          <div class="stat-card-label">Utilisateurs</div>
+          <h3>Utilisateurs</h3>
+          <div class="value" style="color:#4ade80;"><?= $stats['utilisateurs'] ?></div>
         </div>
       </div>
 
-      
-      <div class="action-buttons">
-        <button class="btn btn-primary" onclick="openAddModal()"><i class="fas fa-user-plus"></i> Nouvel Utilisateur</button>
-        <button class="btn btn-secondary" onclick="filterUsers('all')">Tous</button>
-        <button class="btn btn-secondary" onclick="filterUsers('admin')">Admins</button>
-        <button class="btn btn-secondary" onclick="filterUsers('editeur')">Éditeurs</button>
-        <button class="btn btn-secondary" onclick="filterUsers('utilisateur')">Utilisateurs</button>
-      </div>
 
-     
-      <div class="users-table">
-        <?php if (empty($users)): ?>
-          <div class="no-users">
-            <i class="fas fa-user-slash"></i>
-            <p>Aucun utilisateur trouvé.</p>
+      <!-- TABLEAU STANDARDISÉ -->
+      <div class="table-container">
+        <div class="table-header">
+          <h3 class="table-title">
+            <i class="fas fa-users"></i> Liste des utilisateurs
+          </h3>
+          <div class="table-actions">
+            <button class="btn btn-primary" onclick="ouvrirModaleAjout()">
+              <i class="fas fa-user-plus"></i> Nouvel Utilisateur
+            </button>
           </div>
-        <?php else: ?>
-          <table id="usersTable">
-            <thead>
-              <tr>
-                <th>Utilisateur</th>
-                <th>Email</th>
-                <th>Rôle</th>
-                <th>Date d'inscription</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php foreach ($users as $u): ?>
-                <tr data-role="<?= strtolower($u['role']) ?>">
-                  <td class="user-info">
-                    <div class="user-avatar"><?= strtoupper(substr($u['nom'], 0, 2)) ?></div>
-                    <div class="user-details">
-                      <span class="user-name"><?= htmlspecialchars($u['nom']) ?></span>
-                      <span class="user-email"><?= htmlspecialchars($u['email']) ?></span>
-                    </div>
-                  </td>
-                  <td><?= htmlspecialchars($u['email']) ?></td>
-                  <td>
-                    <span class="role-badge <?= match(strtolower($u['role'])) {
-                      'admin' => 'role-admin',
-                      'editeur', 'éditeur' => 'role-editeur',
-                      default => 'role-utilisateur'
-                    } ?>">
-                      <?= ucfirst($u['role']) ?>
-                    </span>
-                  </td>
-                  <td><?= date('d/m/Y', strtotime($u['date_creation'])) ?></td>
-                  <td>
-                    <div class="table-actions">
-                      <button class="btn btn-primary btn-small" onclick='viewUser(<?= json_encode($u, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'><i class="fas fa-eye"></i></button>
-                      <button class="btn btn-warning btn-small" onclick='editUser(<?= json_encode($u, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'><i class="fas fa-edit"></i></button>
-                      <form method="POST" action="?page=admin-utilisateurs" style="display:inline;">
-                        <input type="hidden" name="action" value="delete">
-                        <input type="hidden" name="user_id" value="<?= $u['id'] ?>">
-                        <button type="submit" class="btn btn-danger btn-small"><i class="fas fa-trash"></i></button>
-                      </form>
-                    </div>
-                  </td>
+        </div>
+
+        <!-- Filtres -->
+        <div class="filters">
+          <button class="filter-btn active" onclick="filtrerUtilisateurs('all')">
+            <i class="fas fa-users"></i> Tous
+          </button>
+          <button class="filter-btn" onclick="filtrerUtilisateurs('admin')">
+            <i class="fas fa-user-shield"></i> Admins
+          </button>
+          <button class="filter-btn" onclick="filtrerUtilisateurs('editeur')">
+            <i class="fas fa-user-edit"></i> Éditeurs
+          </button>
+          <button class="filter-btn" onclick="filtrerUtilisateurs('utilisateur')">
+            <i class="fas fa-user"></i> Utilisateurs
+          </button>
+        </div>
+
+        <!-- Tableau -->
+        <div class="users-table">
+          <?php if (empty($users)): ?>
+            <div class="empty-state">
+              <i class="fas fa-user-slash"></i>
+              <h2>Aucun utilisateur trouvé</h2>
+              <p>Commencez par créer votre premier utilisateur</p>
+            </div>
+          <?php else: ?>
+            <table id="tableauUtilisateurs">
+              <thead>
+                <tr>
+                  <th class="col-medium">Utilisateur</th>
+                  <th class="col-medium">Email</th>
+                  <th class="col-small">Rôle</th>
+                  <th class="col-date">Date d'inscription</th>
+                  <th class="col-actions">Actions</th>
                 </tr>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
-        <?php endif; ?>
+              </thead>
+              <tbody>
+                <?php foreach ($users as $u): ?>
+                  <tr data-user-id="<?= $u['id'] ?>" data-role="<?= strtolower($u['role']) ?>">
+                    <td class="user-info">
+                      <div class="user-avatar"><?= strtoupper(substr($u['nom'], 0, 2)) ?></div>
+                      <div class="user-details">
+                        <span class="user-name"><?= htmlspecialchars($u['nom']) ?></span>
+                      </div>
+                    </td>
+                    <td><?= htmlspecialchars($u['email']) ?></td>
+                    <td class="text-center">
+                      <span class="role-badge <?= match(strtolower($u['role'])) {
+                        'admin' => 'role-admin',
+                        'editeur', 'éditeur' => 'role-editeur',
+                        default => 'role-utilisateur'
+                      } ?>">
+                        <?= ucfirst($u['role']) ?>
+                      </span>
+                    </td>
+                    <td><?= date('d/m/Y', strtotime($u['date_creation'])) ?></td>
+                    <td class="text-center">
+                      <button class="btn btn-sm btn-primary" onclick='voirUtilisateur(<?= json_encode($u, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)' title="Voir">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                      <button class="btn btn-sm btn-warning" onclick='editerUtilisateur(<?= json_encode($u, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)' title="Modifier">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <button class="btn btn-sm btn-danger" onclick="supprimerUtilisateur(<?= $u['id'] ?>, '<?= htmlspecialchars($u['nom'], ENT_QUOTES) ?>')" title="Supprimer">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </td>
+                  </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
+          <?php endif; ?>
+        </div>
       </div>
     </section>
-  </div>
+  </main>
 </div>
 
-<!-- ========== MODALE UTILISATEUR ========== -->
-<div id="userModal" class="modal">
+
+<div id="modaleUtilisateur" class="modal">
   <div class="modal-content">
     <div class="modal-header">
-      <h2 id="modalTitle"><i class="fas fa-user"></i> Modifier l'Utilisateur</h2>
-      <button class="close-modal" onclick="closeModal()">&times;</button>
+      <h2 id="titreModale"><i class="fas fa-user"></i> Modifier l'Utilisateur</h2>
+      <button class="close-modal" onclick="fermerModale()">&times;</button>
     </div>
-    <form method="POST" action="?page=admin-utilisateurs">
-      <input type="hidden" name="action" value="update">
-      <input type="hidden" name="user_id" id="userId">
+    <form id="formulaireUtilisateur" method="POST" action="?page=admin-utilisateurs">
+      <input type="hidden" name="action" value="update" id="actionFormulaire">
+      <input type="hidden" name="user_id" id="idUtilisateur">
+      <?php require_once __DIR__ . '/../../helpers/CsrfHelper.php'; echo CsrfHelper::obtenirChampJeton(); ?>
 
       <div class="form-group">
         <label>Nom complet *</label>
-        <input type="text" name="nom" id="userName" required>
+        <input type="text" name="nom" id="nomUtilisateur" required>
       </div>
 
       <div class="form-group">
         <label>Email *</label>
-        <input type="email" name="email" id="userEmail" required>
+        <input type="email" name="email" id="emailUtilisateur" required>
       </div>
 
       <div class="form-group">
         <label>Rôle *</label>
-        <select name="role" id="userRole" required>
-          <option value="Admin">Admin</option>
-          <option value="Éditeur">Éditeur</option>
-          <option value="Utilisateur">Utilisateur</option>
+        <select name="role" id="roleUtilisateur" required>
+          <option value="admin">Admin</option>
+          <option value="editeur">Éditeur</option>
+          <option value="utilisateur">Utilisateur</option>
         </select>
       </div>
 
       <div class="form-group">
         <label>Mot de passe *</label>
-        <input type="password" name="mot_de_passe" id="userPassword">
+        <input type="password" name="mot_de_passe" id="motDePasseUtilisateur">
         <div class="password-info">
           <i class="fas fa-info-circle"></i> Laissez vide pour conserver le mot de passe actuel.
         </div>
       </div>
 
       <div class="form-actions">
-        <button type="button" class="btn btn-danger" onclick="closeModal()">✖ Annuler</button>
+        <button type="button" class="btn btn-danger" onclick="fermerModale()">✖ Annuler</button>
         <button type="submit" class="btn btn-primary">💾 Enregistrer</button>
       </div>
     </form>
   </div>
 </div>
 
+<script src="js/securite-helper.js"></script>
+<script src="js/ajax-helper.js"></script>
+<script src="js/toast-notification.js"></script>
+<script src="js/recherche-helper.js"></script>
+<script src="js/csrf_manager.js"></script>
+<script src="js/gestion-utilisateurs.js"></script>
+
 <script>
-function viewUser(u) {
-  editUser(u);
-  document.getElementById('modalTitle').innerHTML = "<i class='fas fa-user'></i> Détails de l'Utilisateur";
-  document.getElementById('userPassword').parentElement.style.display = 'none';
-}
-
-function editUser(u) {
-  const modal = document.getElementById('userModal');
-  document.getElementById('userId').value = u.id;
-  document.getElementById('userName').value = u.nom;
-  document.getElementById('userEmail').value = u.email;
-  document.getElementById('userRole').value = u.role;
-  document.getElementById('userPassword').value = '';
-  document.getElementById('modalTitle').innerHTML = "<i class='fas fa-user-edit'></i> Modifier l'Utilisateur";
-  document.getElementById('userPassword').parentElement.style.display = 'block';
-  modal.classList.add('active');
-}
-
-function openAddModal() {
-  const modal = document.getElementById('userModal');
-  document.getElementById('modalTitle').innerHTML = "<i class='fas fa-user-plus'></i> Nouvel Utilisateur";
-  document.getElementById('userId').value = '';
-  document.getElementById('userName').value = '';
-  document.getElementById('userEmail').value = '';
-  document.getElementById('userRole').value = 'Utilisateur';
-  document.getElementById('userPassword').value = '';
-  modal.classList.add('active');
-}
-
-function closeModal() {
-  document.getElementById('userModal').classList.remove('active');
-}
-
-function searchUsers() {
-  const val = document.getElementById('searchInput').value.toLowerCase();
-  document.querySelectorAll('#usersTable tbody tr').forEach(row => {
-    row.style.display = row.textContent.toLowerCase().includes(val) ? '' : 'none';
+  // Initialiser la recherche améliorée
+  document.addEventListener('DOMContentLoaded', function() {
+    RechercheHelper.initialiser('champRecherche', '#tableauUtilisateurs tbody tr');
   });
-}
-
-function filterUsers(role) {
-  const rows = document.querySelectorAll('#usersTable tbody tr');
-  rows.forEach(row => {
-    const userRole = row.dataset.role;
-    row.style.display = (role === 'all' || userRole === role) ? '' : 'none';
-  });
-}
 </script>
+
+<!-- JavaScript menu mobile -->
+<script src="js/admin-mobile-menu.js"></script>
 
 </body>
 </html>

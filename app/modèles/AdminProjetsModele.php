@@ -1,67 +1,68 @@
 <?php
 // app/modeles/AdminProjetsModele.php
-require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../../config/database.php';
 
 class AdminProjetsModele
 {
-    private PDO $db;
+    private PDO $baseDeDonnees;
 
     public function __construct()
     {
-        $this->db = getDatabase();
+        $this->baseDeDonnees = getDatabase();
     }
 
-    public function all(): array
+    public function tousLesElements(): array
     {
         $sql = "
-            SELECT 
-                id, 
-                title, 
+            SELECT
+                id,
+                title,
                 description,
-                CASE WHEN auteur = 11 THEN 'Fablabteam' ELSE auteur END AS auteur,
-                description_detailed, 
-                technologies, 
-                image_url, 
-                features, 
-                challenges, 
-                created_at, 
+                auteur,
+                description_detailed,
+                technologies,
+                image_url,
+                features,
+                challenges,
+                created_at,
                 updated_at
-            FROM projects 
+            FROM projects
+            WHERE deleted_at IS NULL
             ORDER BY created_at DESC
         ";
 
-        return $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+        return $this->baseDeDonnees->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function find(int $id): ?array
+    public function trouver(int $id): ?array
     {
-        
+
         $sql = "
-            SELECT 
-                id, 
-                title, 
+            SELECT
+                id,
+                title,
                 description,
-                CASE WHEN auteur = 11 THEN 'Fablabteam' ELSE auteur END AS auteur,
+                auteur,
                 description_detailed,
-                technologies, 
-                image_url, 
-                features, 
+                technologies,
+                image_url,
+                features,
                 challenges,
-                created_at, 
+                created_at,
                 updated_at
             FROM projects
-            WHERE id = :id
+            WHERE id = :id AND deleted_at IS NULL
             LIMIT 1
         ";
 
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([':id' => $id]);
+        $requete = $this->baseDeDonnees->prepare($sql);
+        $requete->execute([':id' => $id]);
 
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        $result = $requete->fetch(PDO::FETCH_ASSOC);
         return $result ?: null;
     }
 
-    public function create(array $data): int
+    public function creer(array $data): int
     {
         $sql = "
             INSERT INTO projects
@@ -70,11 +71,11 @@ class AdminProjetsModele
             (:title, :description, :auteur, :description_detailed, :technologies, :image_url, :features, :challenges, NOW(), NOW())
         ";
 
-        
-        $auteur = empty($data['auteur']) ? 11 : (int)$data['auteur'];
 
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([
+        $auteur = empty($data['auteur']) ? 'Fablabteam' : $data['auteur'];
+
+        $requete = $this->baseDeDonnees->prepare($sql);
+        $requete->execute([
             ':title'                => $data['title'],
             ':description'          => $data['description'],
             ':auteur'               => $auteur,
@@ -85,10 +86,10 @@ class AdminProjetsModele
             ':challenges'           => $data['challenges'] ?? null
         ]);
 
-        return (int)$this->db->lastInsertId();
+        return (int)$this->baseDeDonnees->lastInsertId();
     }
 
-    public function update(int $id, array $data): bool
+    public function mettreAJour(int $id, array $data): bool
     {
         $sql = "
             UPDATE projects
@@ -105,11 +106,11 @@ class AdminProjetsModele
             WHERE id = :id
         ";
 
-       
-        $auteur = empty($data['auteur']) ? 11 : (int)$data['auteur'];
 
-        $stmt = $this->db->prepare($sql);
-        return $stmt->execute([
+        $auteur = empty($data['auteur']) ? 'Fablabteam' : $data['auteur'];
+
+        $requete = $this->baseDeDonnees->prepare($sql);
+        return $requete->execute([
             ':title'                => $data['title'],
             ':description'          => $data['description'],
             ':auteur'               => $auteur,
@@ -122,9 +123,50 @@ class AdminProjetsModele
         ]);
     }
 
-    public function delete(int $id): bool
+    public function supprimer(int $id): bool
     {
-        $stmt = $this->db->prepare("DELETE FROM projects WHERE id = :id");
-        return $stmt->execute([':id' => $id]);
+        $requete = $this->baseDeDonnees->prepare("UPDATE projects SET deleted_at = NOW() WHERE id = :id");
+        return $requete->execute([':id' => $id]);
+    }
+
+    /**
+     * Suppression définitive d'un projet (hard delete)
+     * À utiliser avec précaution
+     */
+    public function supprimerDefinitivement(int $id): bool
+    {
+        $requete = $this->baseDeDonnees->prepare("DELETE FROM projects WHERE id = :id AND deleted_at IS NOT NULL");
+        return $requete->execute([':id' => $id]);
+    }
+
+    /**
+     * Restaurer un projet supprimé
+     */
+    public function restaurer(int $id): bool
+    {
+        $requete = $this->baseDeDonnees->prepare("UPDATE projects SET deleted_at = NULL WHERE id = :id AND deleted_at IS NOT NULL");
+        return $requete->execute([':id' => $id]);
+    }
+
+    /**
+     * Récupérer tous les projets supprimés (dans la corbeille)
+     */
+    public function elementsSupprimes(): array
+    {
+        $sql = "
+            SELECT
+                id,
+                title,
+                description,
+                auteur,
+                image_url,
+                created_at,
+                deleted_at
+            FROM projects
+            WHERE deleted_at IS NOT NULL
+            ORDER BY deleted_at DESC
+        ";
+
+        return $this->baseDeDonnees->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     }
 }

@@ -1,0 +1,372 @@
+// ============================================================
+// header.scss — Navigation (MOBILE FIRST)
+// Base = mobile, puis @include tablette / desktop pour agrandir
+// ============================================================
+
+@use "variables" as *;
+
+* {
+  box-sizing: border-box;
+}
+
+// === Navigation ===
+.barre-navigation {
+  background-color: $blanc;
+  border-bottom: 2px solid $gris-clair;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  width: 100%;
+}
+
+.conteneur-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: $breakpoint-xl;
+  margin: 0 auto;
+  padding: 0 0.75rem;
+  height: 55px;
+  gap: 1rem;
+  position: relative;
+
+  @include mobile-sm {
+    padding: 0 1rem;
+  }
+  @include tablette {
+    height: 60px;
+    padding: 0 1.5rem;
+    justify-content: center;
+  }
+  @include desktop {
+    height: 70px;
+    padding: 0 2rem;
+    gap: 2rem;
+  }
+}
+
+// === Logo ===
+.logo-entete {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  flex-shrink: 0;
+  transition: opacity $transition-base;
+
+  img {
+    height: 35px;
+    width: auto;
+    @include mobile-sm {
+      height: 40px;
+    }
+    @include tablette {
+      height: 45px;
+    }
+    @include desktop {
+      height: 95px;
+    }
+  }
+
+  &:hover {
+    opacity: 0.8;
+  }
+
+  @include desktop {
+    position: absolute;
+    left: 2rem;
+    top: -1px;
+  }
+}
+
+// === Liens nav (masqués en mobile) ===
+.liens-navigation {
+  display: none;
+
+  @include tablette {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    flex: 1;
+  }
+
+  @include desktop {
+    gap: 2.5rem;
+  }
+}
+
+.lien-nav {
+  color: $couleur-secondaire;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: color $transition-base;
+  white-space: nowrap;
+  position: relative;
+
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background-color: $couleur-primaire;
+    transition: width $transition-base;
+  }
+
+  &:hover {
+    color: $couleur-primaire;
+    &::after {
+      width: 100%;
+    }
+  }
+
+  @include desktop {
+    font-size: 0.95rem;
+  }
+}
+
+// === Bouton menu (mobile only) ===
+.bouton-menu {
+  display: block;
+  background: none;
+  border: none;
+  color: $couleur-secondaire;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0;
+
+  &:hover {
+    color: $couleur-primaire;
+  }
+
+  @include tablette {
+    display: none;
+  }
+}
+
+// === Auth (masqué en mobile) ===
+.liens-authentification {
+  display: none;
+
+  @include tablette {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    position: absolute;
+    right: 2rem;
+  }
+}
+
+.btn-inscription {
+  background-color: $couleur-primaire;
+  color: $blanc !important;
+  padding: 0.5rem 1.2rem;
+  border-radius: 4px;
+  transition: background-color $transition-base;
+
+  &:hover {
+    background-color: $couleur-primaire-fonce !important;
+  }
+
+  &::after {
+    display: none;
+  }
+}
+
+// === Menu mobile ===
+.menu-mobile {
+  display: none;
+  position: absolute;
+  top: 55px;
+  left: 0;
+  width: 100%;
+  background-color: $blanc;
+  border-top: 2px solid $gris-clair;
+  flex-direction: column;
+  z-index: 999;
+
+  &.active {
+    display: flex;
+  }
+
+  .lien-nav {
+    padding: 1rem 2rem;
+    border-bottom: 1px solid $gris-clair;
+    width: 100%;
+    display: block;
+    &::after {
+      display: none;
+    }
+  }
+
+  @include tablette {
+    display: none !important;
+  }
+}
+
+.menu-mobile-auth {
+  padding: 1rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  border-top: 2px solid $gris-clair;
+
+  .lien-nav {
+    padding: 0.75rem 1rem;
+    border: none;
+    border-radius: 4px;
+    text-align: center;
+  }
+}
+
+// === Profil ===
+.profil-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  position: relative;
+}
+
+.profil-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  transition: background-color $transition-base;
+
+  &:hover {
+    background-color: $gris-clair;
+  }
+}
+
+.profil-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.profil-nom {
+  font-weight: 600;
+  color: $couleur-secondaire;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.profil-role {
+  font-size: 0.75rem;
+  color: $couleur-primaire;
+  font-weight: 500;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+// === Dropdown ===
+.profil-dropdown {
+  display: none;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 0.5rem;
+  background-color: $blanc;
+  border: 1px solid $gris-bordure;
+  border-radius: 8px;
+  box-shadow: $ombre-moyenne;
+  min-width: 200px;
+  z-index: 1001;
+  overflow: hidden;
+
+  &.active {
+    display: block;
+  }
+}
+
+.profil-dropdown-header {
+  padding: 1rem;
+  border-bottom: 1px solid $gris-clair;
+  background-color: #f9f9f9;
+}
+
+.profil-dropdown-menu {
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem 0;
+
+  li {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+}
+
+.profil-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  color: $couleur-secondaire;
+  text-decoration: none;
+  transition: all 0.25s ease;
+  font-size: 0.9rem;
+  font-weight: 500;
+
+  &:hover {
+    background: rgba($couleur-primaire, 0.18);
+    color: $couleur-primaire;
+  }
+
+  &.danger {
+    color: $couleur-danger;
+    &:hover {
+      background: rgba($couleur-danger, 0.15);
+    }
+  }
+}
+
+.profil-dropdown-divider {
+  height: 1px;
+  background: $gris-clair;
+  margin: 0.5rem 0;
+}
+
+// === Avatars ===
+.user-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid $couleur-primaire;
+}
+
+.initials-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  color: $blanc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: $taille-base;
+  border: 2px solid rgba($blanc, 0.3);
+}
+
+.user-avatar-mobile,
+.initials-avatar-mobile {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba($blanc, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $blanc;
+  font-weight: bold;
+}

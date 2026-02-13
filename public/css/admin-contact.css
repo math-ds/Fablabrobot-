@@ -1,0 +1,246 @@
+/**
+ * ============================================
+ * ADMIN CONTACT - Styles spécifiques
+ * Hérite de admin-common.css pour .table-container, .modal, etc.
+ * ============================================
+ */
+
+/* ==========================================
+   CARTES DE STATISTIQUES
+   Note: Utilise maintenant .stats-grid et .stat-card d'admin-common.css
+   ========================================== */
+
+/* ==========================================
+   CELLULES TABLEAU CONTACT
+   ========================================== */
+
+.contact-message-nom {
+  font-weight: var(--font-weight-semibold);
+  color: var(--primary);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.contact-message-email {
+  font-size: var(--font-size-sm);
+  color: var(--white-alpha-70);
+  display: block;
+}
+
+.contact-message-sujet {
+  font-weight: var(--font-weight-semibold);
+  display: block;
+}
+
+.contact-message-excerpt {
+  color: var(--white-alpha-90);
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+}
+
+/* ==========================================
+   MODALE DE MESSAGE - Amélioration
+   ========================================== */
+
+#messageModal .contact-modal-content {
+  max-width: 800px;
+}
+
+/* En-tête du message */
+.message-header-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+  background: var(--white-alpha-05);
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-xl);
+}
+
+.message-sender {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-md);
+}
+
+.message-sender-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: var(--radius-circle);
+  background: var(--primary-alpha-20);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-xl);
+  color: var(--primary);
+  font-weight: var(--font-weight-bold);
+}
+
+.message-sender-info {
+  flex: 1;
+}
+
+.message-sender-name {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--white);
+  margin-bottom: 4px;
+}
+
+.message-sender-email {
+  font-size: var(--font-size-sm);
+  color: var(--white-alpha-70);
+  display: flex;
+  align-items: center;
+  gap: var(--gap-xs);
+}
+
+/* Sujet du message */
+.message-subject {
+  background: var(--primary-alpha-05);
+  border-left: 3px solid var(--primary);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  margin: var(--spacing-lg) 0;
+}
+
+.message-subject-label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--spacing-xs);
+}
+
+.message-subject-text {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--white);
+  line-height: 1.4;
+}
+
+/* Contenu du message */
+.message-body {
+  background: var(--white-alpha-03);
+  border: 1px solid var(--primary-alpha-15);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-xl);
+  margin: var(--spacing-xl) 0;
+  min-height: 150px;
+}
+
+.message-content-text {
+  color: var(--white-alpha-90);
+  line-height: 1.7;
+  font-size: var(--font-size-base);
+  word-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+/* Métadonnées du message */
+.message-metadata {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap-lg);
+  padding: var(--spacing-lg);
+  background: var(--black-alpha-20);
+  border-radius: var(--radius-md);
+  margin-top: var(--spacing-xl);
+}
+
+.message-metadata-item {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+  color: var(--white-alpha-70);
+  font-size: var(--font-size-sm);
+}
+
+.message-metadata-item i {
+  color: var(--primary);
+  font-size: var(--font-size-base);
+}
+
+.message-metadata-item strong {
+  color: var(--white);
+  margin-left: 4px;
+}
+
+/* Badge de statut */
+.message-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gap-xs);
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+}
+
+.message-status-badge.unread {
+  background: rgba(255, 165, 0, 0.2);
+  color: var(--warning-light);
+  border: 1px solid var(--warning);
+}
+
+.message-status-badge.read {
+  background: rgba(76, 175, 80, 0.2);
+  color: var(--success-light);
+  border: 1px solid var(--success);
+}
+
+/* ==========================================
+   FILTRES CONTACT
+   ========================================== */
+
+.contact-filter-buttons {
+  display: flex;
+  gap: var(--gap-sm);
+  flex-wrap: wrap;
+  margin-bottom: var(--spacing-xl);
+}
+
+/* ==========================================
+   RESPONSIVE
+   ========================================== */
+
+@media (max-width: 768px) {
+  .contact-stats-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .contact-messages-table {
+    overflow-x: auto;
+  }
+
+  .contact-table {
+    min-width: 700px;
+  }
+
+  #messageModal .contact-modal-content {
+    width: 95%;
+    max-width: 95%;
+  }
+
+  .message-metadata {
+    flex-direction: column;
+    gap: var(--gap-md);
+  }
+}
+
+@media (max-width: 480px) {
+  .message-sender {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .message-subject-text {
+    font-size: var(--font-size-base);
+  }
+
+  .message-body {
+    padding: var(--spacing-lg);
+  }
+}

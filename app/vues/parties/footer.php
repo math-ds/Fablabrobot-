@@ -1,34 +1,36 @@
-<footer class="site-footer">
-  <link rel="stylesheet" href="<?= $GLOBALS['baseUrl'] ?>css/footer.css">
 
-  <div class="site-footer-container">
- 
-    <div class="footer-social-icons">
-      <a href="https://www.ajc-formation.fr" target="_blank" rel="noopener">
-        <img src="<?= $GLOBALS['baseUrl'] ?>images/assets/AJC.png" alt="AJC" class="footer-social-icon" />
-      </a>
-      <a href="https://www.facebook.com/AjcFormation/?locale=fr_FR" target="_blank" rel="noopener">
-        <img src="<?= $GLOBALS['baseUrl'] ?>images/assets/fablab_facebook.png" alt="Facebook" class="footer-social-icon" />
-      </a>
-      <a href="https://fr.linkedin.com/company/ajc-formation" target="_blank" rel="noopener">
-        <img src="<?= $GLOBALS['baseUrl'] ?>images/assets/LinkedinAJC.png" alt="LinkedIn" class="footer-social-icon" />
-      </a>
+  <footer class="site-footer">
+    <div class="site-footer-container">
+
+      <div class="footer-social-icons">
+        <a href="https://www.ajc-formation.fr" target="_blank" rel="noopener" aria-label="Site AJC Formation">
+          <img src="<?= $GLOBALS['baseUrl'] ?>images/assets/AJC.png" alt="AJC Formation" class="footer-social-icon">
+        </a>
+        <a href="https://www.facebook.com/AjcFormation/?locale=fr_FR" target="_blank" rel="noopener" aria-label="Facebook AJC">
+          <img src="<?= $GLOBALS['baseUrl'] ?>images/assets/fablab_facebook.png" alt="Page Facebook" class="footer-social-icon">
+        </a>
+        <a href="https://fr.linkedin.com/company/ajc-formation" target="_blank" rel="noopener" aria-label="LinkedIn AJC">
+          <img src="<?= $GLOBALS['baseUrl'] ?>images/assets/LinkedinAJC.png" alt="Page LinkedIn" class="footer-social-icon">
+        </a>
+      </div>
+
+      <nav class="footer-nav-links" aria-label="Navigation secondaire">
+        <ul>
+          <li><a href="?page=accueil">Accueil</a></li>
+          <li><a href="?page=articles">Articles</a></li>
+          <li><a href="?page=projets">Projets</a></li>
+          <li><a href="?page=webtv">WebTV</a></li>
+          <li><a href="?page=contact">Contact</a></li>
+        </ul>
+      </nav>
     </div>
 
-   
-    <div class="footer-nav-links">
-      <ul>
-        <li><a href="?page=accueil">Accueil</a></li>
-        <li><a href="?page=forum">Forum</a></li>
-        <li><a href="?page=projets">Projets</a></li>
-        <li><a href="?page=webtv">WebTV</a></li>
-        <li><a href="?page=contact">Contact</a></li>
-      </ul>
+    <div class="site-footer-bottom">
+      <p>&copy; <?= date("Y") ?> AJC Formation — Tous droits réservés.</p>
     </div>
-  </div>
+  </footer>
 
- 
-  <div class="site-footer-bottom">
-    <p>&copy; <?= date("Y") ?> AJC Formation — Tous droits réservés.</p>
-  </div>
-</footer>
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

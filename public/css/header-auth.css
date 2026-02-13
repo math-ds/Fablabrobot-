@@ -1,0 +1,35 @@
+.header-auth {
+  padding: 30px 0;
+  margin-bottom: 50px;
+}
+
+.header-auth .nav-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.header-auth .logo-section {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.header-auth .navbar-logo {
+  height: 60px;
+  width: auto;
+  filter: brightness(1.1);
+}
+
+.header-auth .brand-name {
+  font-size: 28px;
+  font-weight: 700;
+  color: #ffffff;
+  text-decoration: none;
+  letter-spacing: 0.5px;
+  transition: color 0.3s ease;
+}
+
+.header-auth .brand-name:hover {
+  color: #00d4aa;
+}

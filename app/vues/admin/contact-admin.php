@@ -3,9 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <title>Gestion des Messages de Contact - Admin FABLAB</title>
+  <?php require_once __DIR__ . '/../../helpers/CsrfHelper.php'; echo CsrfHelper::obtenirMetaJeton(); ?>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="css/admin.css">
+  <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="css/admin-common.css">
+  <link rel="stylesheet" href="css/admin-contact.css">
+  <link rel="stylesheet" href="css/toast-notification.css">
 </head>
 <body>
 
@@ -13,9 +17,11 @@
   
   <aside class="sidebar">
     <div>
-      <div class="sidebar-logo">
-        <a href="?page=admin"><img src="images/ajc_logo_blanc.png" alt="Logo AJC"></a>
-      </div>
+            <div class="sidebar-logo">
+                <a href="?page=admin">
+                    <img src="images/global/ajc_logo_blanc.png" alt="AJC Logo">
+                </a>
+            </div>
       <?php include __DIR__ . '/../parties/sidebar.php'; ?>
     </div>
     <div class="sidebar-footer">
@@ -23,124 +29,147 @@
     </div>
   </aside>
 
-  
-  <div class="main-content">
+
+  <main class="main-content">
     <header class="admin-header">
       <div class="search-bar">
-        <input type="text" id="searchInput" placeholder="Rechercher un message..." onkeyup="searchMessages()">
+        <input type="text" id="champRecherche" placeholder="Rechercher un message...">
       </div>
     </header>
 
     <section class="dashboard">
       <h1><i class="fas fa-envelope"></i> Gestion des Messages de Contact</h1>
 
-      
+
       <?php if (!empty($_SESSION['message'])): ?>
-        <div class="alert alert-<?= $_SESSION['message_type'] ?>">
-          <i class="fas fa-<?= $_SESSION['message_type'] === 'success' ? 'check-circle' : 'exclamation-circle' ?>"></i>
-          <?= htmlspecialchars($_SESSION['message']) ?>
-        </div>
+        <script>
+          document.addEventListener('DOMContentLoaded', function() {
+            ToastNotification.<?= $_SESSION['message_type'] === 'success' ? 'succes' : 'erreur' ?>(
+              <?= json_encode($_SESSION['message'], JSON_UNESCAPED_UNICODE) ?>
+            );
+          });
+        </script>
         <?php unset($_SESSION['message'], $_SESSION['message_type']); ?>
       <?php endif; ?>
 
-     
-      <div class="contact-stats-cards">
-        <div class="contact-stat-card">
-          <div class="contact-stat-card-header">
-            <i class="fas fa-inbox contact-stat-card-icon"></i>
-          </div>
-          <div class="contact-stat-card-value"><?= $stats['total'] ?></div>
-          <div class="contact-stat-card-label">Total Messages</div>
+      <!-- Cartes de statistiques standardisées -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <h3>Total Messages</h3>
+          <div class="value"><?= $stats['total'] ?></div>
         </div>
-        <div class="contact-stat-card">
-          <div class="contact-stat-card-header">
-            <i class="fas fa-envelope contact-stat-card-icon"></i>
-          </div>
-          <div class="contact-stat-card-value" style="color:#ff6b6b;"><?= $stats['non_lus'] ?></div>
-          <div class="contact-stat-card-label">Non Lus</div>
+        <div class="stat-card">
+          <h3>Non Lus</h3>
+          <div class="value" style="color:#ff6b6b;"><?= $stats['non_lus'] ?></div>
         </div>
-        <div class="contact-stat-card">
-          <div class="contact-stat-card-header">
-            <i class="fas fa-envelope-open contact-stat-card-icon"></i>
-          </div>
-          <div class="contact-stat-card-value" style="color:#ffa500;"><?= $stats['lus'] ?></div>
-          <div class="contact-stat-card-label">Lus</div>
+        <div class="stat-card">
+          <h3>Lus</h3>
+          <div class="value" style="color:#ffa500;"><?= $stats['lus'] ?></div>
         </div>
-        <div class="contact-stat-card">
-          <div class="contact-stat-card-header">
-            <i class="fas fa-check-circle contact-stat-card-icon"></i>
-          </div>
-          <div class="contact-stat-card-value" style="color:#4ade80;"><?= $stats['traites'] ?></div>
-          <div class="contact-stat-card-label">Traités</div>
+        <div class="stat-card">
+          <h3>Traités</h3>
+          <div class="value" style="color:#4ade80;"><?= $stats['traites'] ?></div>
         </div>
       </div>
 
-      
-      <div class="contact-filter-buttons">
-        <button class="btn btn-primary" onclick="filterMessages('all')">Tous</button>
-        <button class="btn btn-secondary" onclick="filterMessages('non_lu')">Non lus</button>
-        <button class="btn btn-secondary" onclick="filterMessages('lu')">Lus</button>
-        <button class="btn btn-secondary" onclick="filterMessages('traite')">Traités</button>
-      </div>
 
-   
-      <div class="contact-messages-table">
-        <?php if (empty($contacts)): ?>
-          <div class="no-messages">
-            <i class="fas fa-inbox"></i>
-            <p>Aucun message trouvé.</p>
+      <!-- TABLEAU STANDARDISÉ -->
+      <div class="table-container">
+        <div class="table-header">
+          <h3 class="table-title">
+            <i class="fas fa-envelope"></i> Messages de contact
+          </h3>
+          <div class="stats-badge">
+            <i class="fas fa-envelope"></i> <?= count($contacts) ?> message(s)
           </div>
-        <?php else: ?>
-          <table id="contactsTable" class="contact-table">
-            <thead>
-              <tr>
-                <th>Contact</th>
-                <th>Sujet</th>
-                <th>Message</th>
-                <th>Date</th>
-                <th>Statut</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php foreach ($contacts as $msg): ?>
-                <tr data-statut="<?= htmlspecialchars($msg['statut']) ?>" class="<?= $msg['statut'] === 'non_lu' ? 'unread' : '' ?>">
-                  <td>
-                    <div class="contact-message-nom"><?= htmlspecialchars($msg['nom']) ?></div>
-                    <div class="contact-message-email"><?= htmlspecialchars($msg['email']) ?></div>
-                  </td>
-                  <td class="contact-message-sujet"><?= htmlspecialchars($msg['sujet']) ?></td>
-                  <td class="contact-message-excerpt"><?= htmlspecialchars(substr($msg['message'], 0, 50)) ?>...</td>
-                  <td><?= date('d/m/Y H:i', strtotime($msg['date_envoi'])) ?></td>
-                  <td>
-                    <span class="role-badge <?= match($msg['statut']) {
-                      'lu' => 'role-editeur',
-                      'traite' => 'role-admin',
-                      default => 'role-utilisateur'
-                    } ?>">
-                      <?= ucfirst($msg['statut']) ?>
-                    </span>
-                  </td>
-                  <td>
-                    <div class="table-actions">
-                      <button class="btn btn-primary btn-small" onclick='viewMessage(<?= json_encode($msg, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'>
+        </div>
+
+        <!-- Filtres -->
+        <div class="filters">
+          <button class="filter-btn active" onclick="filtrerMessages('all')">
+            <i class="fas fa-inbox"></i> Tous
+          </button>
+          <button class="filter-btn" onclick="filtrerMessages('non_lu')">
+            <i class="fas fa-envelope"></i> Non lus
+          </button>
+          <button class="filter-btn" onclick="filtrerMessages('lu')">
+            <i class="fas fa-envelope-open"></i> Lus
+          </button>
+          <button class="filter-btn" onclick="filtrerMessages('traite')">
+            <i class="fas fa-check-circle"></i> Traités
+          </button>
+        </div>
+
+        <!-- Tableau -->
+        <div class="users-table">
+          <?php if (empty($contacts)): ?>
+            <div class="empty-state">
+              <i class="fas fa-inbox"></i>
+              <h2>Aucun message trouvé</h2>
+              <p>Vous n'avez reçu aucun message de contact</p>
+            </div>
+          <?php else: ?>
+            <table id="contactsTable">
+              <thead>
+                <tr>
+                  <th class="col-medium">Contact</th>
+                  <th class="col-medium">Sujet</th>
+                  <th class="col-large">Message</th>
+                  <th class="col-date">Date</th>
+                  <th class="col-small">Statut</th>
+                  <th class="col-actions">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php foreach ($contacts as $msg): ?>
+                  <tr data-contact-id="<?= $msg['id'] ?>" data-statut="<?= htmlspecialchars($msg['statut']) ?>" class="<?= $msg['statut'] === 'non_lu' ? 'unread' : '' ?>">
+                    <td>
+                      <span class="contact-message-nom"><?= htmlspecialchars($msg['nom']) ?></span>
+                      <span class="contact-message-email"><?= htmlspecialchars($msg['email']) ?></span>
+                    </td>
+                    <td>
+                      <span class="contact-message-sujet"><?= htmlspecialchars($msg['sujet']) ?></span>
+                    </td>
+                    <td>
+                      <p class="contact-message-excerpt"><?= htmlspecialchars(substr($msg['message'], 0, 50)) ?>...</p>
+                    </td>
+                    <td><?= date('d/m/Y H:i', strtotime($msg['date_envoi'])) ?></td>
+                    <td class="text-center">
+                      <span class="role-badge <?= match($msg['statut']) {
+                        'lu' => 'role-editeur',
+                        'traite' => 'role-admin',
+                        default => 'role-utilisateur'
+                      } ?>">
+                        <?php
+                          if ($msg['statut'] === 'non_lu') {
+                            echo 'Non lu';
+                          } elseif ($msg['statut'] === 'lu') {
+                            echo 'Lu';
+                          } elseif ($msg['statut'] === 'traite') {
+                            echo 'Traité';
+                          } else {
+                            echo htmlspecialchars($msg['statut']);
+                          }
+                        ?>
+                      </span>
+                    </td>
+                    <td class="text-center">
+                      <button class="btn btn-sm btn-primary" onclick='voirMessage(<?= json_encode($msg, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)' title="Voir le message">
                         <i class="fas fa-eye"></i>
                       </button>
-                      <form method="POST" action="?page=admin-contact" style="display:inline;">
-                        <input type="hidden" name="action" value="delete">
-                        <input type="hidden" name="contact_id" value="<?= $msg['id'] ?>">
-                        <button type="submit" class="btn btn-danger btn-small"><i class="fas fa-trash"></i></button>
-                      </form>
-                    </div>
-                  </td>
-                </tr>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
-        <?php endif; ?>
+                      <button class="btn btn-sm btn-danger" onclick="supprimerMessage(<?= $msg['id'] ?>, '<?= htmlspecialchars($msg['nom'], ENT_QUOTES) ?>')" title="Supprimer">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </td>
+                  </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
+          <?php endif; ?>
+        </div>
       </div>
     </section>
-  </div>
+  </main>
 </div>
 
 
@@ -154,52 +183,122 @@
   </div>
 </div>
 
+<script src="js/securite-helper.js"></script>
+<script src="js/ajax-helper.js"></script>
+<script src="js/toast-notification.js"></script>
+<script src="js/recherche-helper.js"></script>
+<script src="js/csrf_manager.js"></script>
+<script src="js/gestion-contact.js"></script>
+
 <script>
-function viewMessage(msg) {
-  const modal = document.getElementById('messageModal');
-  const content = document.getElementById('messageDetails');
-
-  content.innerHTML = `
-    <div class="form-group"><label><i class="fas fa-user"></i> Nom</label><input type="text" readonly value="${msg.nom}"></div>
-    <div class="form-group"><label><i class="fas fa-envelope"></i> Email</label><input type="text" readonly value="${msg.email}"></div>
-    <div class="form-group"><label><i class="fas fa-tag"></i> Sujet</label><input type="text" readonly value="${msg.sujet}"></div>
-    <div class="form-group"><label><i class="fas fa-calendar"></i> Date d'envoi</label><input type="text" readonly value="${msg.date_envoi}"></div>
-    <div class="form-group"><label><i class="fas fa-info-circle"></i> Statut</label><input type="text" readonly value="${msg.statut}"></div>
-    <div class="form-group"><label><i class="fas fa-network-wired"></i> Adresse IP</label><input type="text" readonly value="${msg.ip_address ?? 'N/A'}"></div>
-    <div class="form-group"><label><i class="fas fa-comment-dots"></i> Message</label><textarea readonly>${msg.message}</textarea></div>
-
-    <div class="form-actions">
-      <form method="POST" action="?page=admin-contact">
-        <input type="hidden" name="contact_id" value="${msg.id}">
-        <input type="hidden" name="nom" value="${msg.nom}">
-        <button type="submit" name="action" value="lu" class="btn btn-primary"><i class="fas fa-envelope-open"></i> Marquer comme lu</button>
-        <button type="submit" name="action" value="traite" class="btn btn-warning"><i class="fas fa-check"></i> Marquer comme traité</button>
-        <button type="submit" name="action" value="delete" class="btn btn-danger"><i class="fas fa-trash"></i> Supprimer</button>
-      </form>
-    </div>
-  `;
-  modal.classList.add('active');
-}
-
-function closeModal() {
-  document.getElementById('messageModal').classList.remove('active');
-}
-
-function searchMessages() {
-  const val = document.getElementById('searchInput').value.toLowerCase();
-  document.querySelectorAll('#contactsTable tbody tr').forEach(row => {
-    row.style.display = row.textContent.toLowerCase().includes(val) ? '' : 'none';
+  // Initialiser la recherche améliorée
+  document.addEventListener('DOMContentLoaded', function() {
+    RechercheHelper.initialiser('champRecherche', '#contactsTable tbody tr');
   });
-}
-
-function filterMessages(status) {
-  const rows = document.querySelectorAll('#contactsTable tbody tr');
-  rows.forEach(row => {
-    const stat = row.dataset.statut;
-    row.style.display = (status === 'all' || stat === status) ? '' : 'none';
-  });
-}
 </script>
+
+<script>
+    // Fonction de suppression AJAX pour les messages de contact
+    async function supprimerMessage(id, nom) {
+        if (!confirm(`Êtes-vous sûr de vouloir supprimer le message de "${nom}" ?`)) {
+            return;
+        }
+
+        try {
+            const data = await AjaxHelper.post('?page=admin-contact', {
+                action: 'delete',
+                contact_id: id
+            });
+
+            if (data.success) {
+                ToastNotification.succes(data.message || 'Message supprimé avec succès');
+
+                // Supprimer la ligne du tableau avec animation
+                const ligne = document.querySelector(`tr[data-contact-id="${id}"]`);
+                if (ligne) {
+                    ligne.style.transition = 'opacity 0.3s';
+                    ligne.style.opacity = '0';
+                    setTimeout(() => ligne.remove(), 300);
+                }
+
+                // Mettre à jour les compteurs
+                const compteurs = document.querySelectorAll('.stat-card .value');
+                compteurs.forEach(compteur => {
+                    const match = compteur.textContent.match(/\d+/);
+                    if (match) {
+                        const actuel = parseInt(match[0]);
+                        compteur.textContent = compteur.textContent.replace(/\d+/, actuel - 1);
+                    }
+                });
+            }
+        } catch (error) {
+            // Mettre à jour le token CSRF si fourni dans l'erreur
+            if (error.data?.new_token) {
+                const metaTag = document.querySelector('meta[name="csrf-token"]');
+                if (metaTag) {
+                    metaTag.content = error.data.new_token;
+                }
+            }
+
+            ToastNotification.erreur(
+                error.data?.message || 'Erreur lors de la suppression'
+            );
+        }
+    }
+
+    // Fonction pour changer le statut en AJAX
+    async function changerStatut(id, statut, nom) {
+        try {
+            const data = await AjaxHelper.post('?page=admin-contact', {
+                action: statut,
+                contact_id: id,
+                nom: nom
+            });
+
+            if (data.success) {
+                ToastNotification.succes(data.message);
+
+                // Mettre à jour la ligne du tableau
+                const ligne = document.querySelector(`tr[data-contact-id="${id}"]`);
+                if (ligne) {
+                    ligne.setAttribute('data-statut', statut);
+                    ligne.classList.remove('unread');
+
+                    // Mettre à jour le badge de statut
+                    const badge = ligne.querySelector('.role-badge');
+                    if (badge) {
+                        badge.className = 'role-badge';
+                        if (statut === 'lu') {
+                            badge.classList.add('role-editeur');
+                            badge.textContent = 'Lu';
+                        } else if (statut === 'traite') {
+                            badge.classList.add('role-admin');
+                            badge.textContent = 'Traité';
+                        } else if (statut === 'non_lu') {
+                            badge.classList.add('role-utilisateur');
+                            badge.textContent = 'Non lu';
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            // Mettre à jour le token CSRF si fourni dans l'erreur
+            if (error.data?.new_token) {
+                const metaTag = document.querySelector('meta[name="csrf-token"]');
+                if (metaTag) {
+                    metaTag.content = error.data.new_token;
+                }
+            }
+
+            ToastNotification.erreur(
+                error.data?.message || 'Erreur lors du changement de statut'
+            );
+        }
+    }
+</script>
+
+<!-- JavaScript menu mobile -->
+<script src="js/admin-mobile-menu.js"></script>
 
 </body>
 </html>

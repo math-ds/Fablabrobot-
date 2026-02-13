@@ -2,6 +2,25 @@
 
 session_start();
 
+// ✅ PROTECTION SESSION HIJACKING - Vérifier validité de la session
+if (isset($_SESSION['utilisateur_id'])) {
+    // Vérifier timeout (30 minutes d'inactivité)
+    if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > 1800)) {
+        session_unset();
+        session_destroy();
+        header('Location: ?page=login');
+        exit;
+    }
+    $_SESSION['last_activity'] = time();
+
+    // Vérifier user agent (protection basique contre vol de session)
+    if (isset($_SESSION['user_agent']) && $_SESSION['user_agent'] !== ($_SERVER['HTTP_USER_AGENT'] ?? '')) {
+        session_unset();
+        session_destroy();
+        header('Location: ?page=login');
+        exit;
+    }
+}
 
 $GLOBALS['baseUrl'] = '/Fablabrobot/public/';
 
@@ -20,12 +39,50 @@ function new_if_exists(array $classNames) {
     return null;
 }
 
+/**
+ * Vérifie que l'utilisateur est authentifié et possède le rôle Admin
+ * Redirige vers login si non authentifié, affiche erreur 403 si non admin
+ */
+function verifierAccesAdmin() {
+    if (!isset($_SESSION['utilisateur_id'])) {
+        header('Location: ?page=login');
+        exit;
+    }
+    if (!isset($_SESSION['utilisateur_role']) || strtolower($_SESSION['utilisateur_role']) !== 'admin') {
+        http_response_code(403);
+        echo "<!DOCTYPE html>
+<html lang='fr'>
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>Accès refusé - FABLAB</title>
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #191a28; color: #fff; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        .error-container { text-align: center; padding: 40px; }
+        .error-container h1 { color: #ff6b6b; font-size: 3rem; margin: 0 0 1rem; }
+        .error-container p { color: #8b92b0; font-size: 1.2rem; margin-bottom: 2rem; }
+        .btn { display: inline-block; padding: 12px 30px; background: #00afa7; color: #fff; text-decoration: none; border-radius: 8px; transition: all 0.3s; }
+        .btn:hover { background: #008f8c; transform: translateY(-2px); }
+    </style>
+</head>
+<body>
+    <div class='error-container'>
+        <h1>⚠️ Accès refusé</h1>
+        <p>Vous devez être administrateur pour accéder à cette page.</p>
+        <a href='?page=accueil' class='btn'>Retour à l'accueil</a>
+    </div>
+</body>
+</html>";
+        exit;
+    }
+}
+
 $page = $_GET['page'] ?? 'accueil';
 
 try {
     switch ($page) {
 
-        
+
         case 'accueil':
             load_controller('app/contrôleurs/AccueilControleur.php');
             (new AccueilControleur())->index();
@@ -81,8 +138,8 @@ case 'projet_enregistrer':
     break;
 
         case 'webtv':
-            load_controller('app/contrôleurs/WebtvControleur.php');
-            (new WebtvControleur())->index();
+            load_controller('app/contrôleurs/VideoControleur.php');
+            (new VideoControleur())->index();
             break;
 
         case 'contact':
@@ -95,76 +152,113 @@ case 'projet_enregistrer':
             $ctrl = new ProfilControleur();
             
             if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-                $ctrl->updatePhoto();
+                $ctrl->mettreAJourPhoto();
             } else {
                 $ctrl->index();
             }
             break;
         
         case 'login':
-            load_controller('app/contrôleurs/AuthControleur.php');
-            (new AuthControleur())->login();
+            load_controller('app/contrôleurs/AuthentificationControleur.php');
+            (new AuthentificationControleur())->connexion();
             break;
 
         case 'inscription':
-            load_controller('app/contrôleurs/AuthControleur.php');
-            (new AuthControleur())->inscription();
+            load_controller('app/contrôleurs/AuthentificationControleur.php');
+            (new AuthentificationControleur())->inscription();
             break;
 
         case 'logout':
-            load_controller('app/contrôleurs/AuthControleur.php');
-            (new AuthControleur())->deconnexion();
+            load_controller('app/contrôleurs/AuthentificationControleur.php');
+            (new AuthentificationControleur())->deconnexion();
             break;
 
         case 'mdp-oublie':
-            load_controller('app/contrôleurs/AuthControleur.php');
-            (new AuthControleur())->mdpOublie();
+            load_controller('app/contrôleurs/AuthentificationControleur.php');
+            (new AuthentificationControleur())->mdpOublie();
             break;
 
-        
+
         case 'admin':
+            verifierAccesAdmin();
             load_controller('app/contrôleurs/AdminDashboardControleur.php');
             (new AdminDashboardControleur())->index();
             break;
 
         case 'admin-projets':
+            verifierAccesAdmin();
             load_controller('app/contrôleurs/AdminProjetsControleur.php');
-            (new AdminProjetsControleur())->handleRequest($_POST['action'] ?? null);
+            (new AdminProjetsControleur())->gererRequete($_POST['action'] ?? null);
             break;
 
         case 'admin-articles':
+            verifierAccesAdmin();
             load_controller('app/contrôleurs/AdminArticlesControleur.php');
-            (new AdminArticlesControleur())->handleRequest($_POST['action'] ?? null);
+            (new AdminArticlesControleur())->gererRequete($_POST['action'] ?? null);
             break;
 
         case 'admin-webtv':
-            load_controller('app/contrôleurs/AdminWebtvControleur.php');
-            (new AdminWebtvControleur())->handleRequest($_POST['action'] ?? null);
+            verifierAccesAdmin();
+            load_controller('app/contrôleurs/AdminVideoControleur.php');
+            (new AdminVideoControleur())->gererRequete($_POST['action'] ?? null);
             break;
 
         case 'admin-comments':
+            verifierAccesAdmin();
             load_controller('app/contrôleurs/AdminCommentairesControleur.php');
-            (new AdminCommentairesControleur())->handleRequest($_POST['action'] ?? null);
+            (new AdminCommentairesControleur())->gererRequete($_POST['action'] ?? null);
             break;
 
-        
+
         case 'admin-utilisateurs':
+            verifierAccesAdmin();
             load_controller('app/contrôleurs/AdminUtilisateursControleur.php');
-            (new AdminUtilisateursControleur())->handleRequest($_POST['action'] ?? null);
+            (new AdminUtilisateursControleur())->gererRequete($_POST['action'] ?? null);
             break;
 
-        
+
         case 'utilisateurs-admin':
+            verifierAccesAdmin();
             load_controller('app/contrôleurs/AdminUtilisateursControleur.php');
-            (new AdminUtilisateursControleur())->handleRequest($_POST['action'] ?? null);
+            (new AdminUtilisateursControleur())->gererRequete($_POST['action'] ?? null);
             break;
 
         case 'admin-contact':
+            verifierAccesAdmin();
             load_controller('app/contrôleurs/AdminContactControleur.php');
-            (new AdminContactControleur())->handleRequest($_POST['action'] ?? null);
+            (new AdminContactControleur())->gererRequete($_POST['action'] ?? null);
             break;
 
-        
+        case 'admin-corbeille':
+            verifierAccesAdmin();
+            load_controller('app/contrôleurs/AdminCorbeilleControleur.php');
+            $ctrl = new AdminCorbeilleControleur();
+            $action = $_GET['action'] ?? null;
+            if ($action === 'restaurer') {
+                $ctrl->restaurerElement();
+            } elseif ($action === 'supprimer-definitivement') {
+                $ctrl->supprimerDefinitivement();
+            } elseif ($action === 'restaurer-tous') {
+                $ctrl->restaurerTous();
+            } elseif ($action === 'vider-corbeille') {
+                $ctrl->viderCorbeille();
+            } else {
+                $ctrl->afficherCorbeille();
+            }
+            break;
+
+        case 'admin-cache':
+            verifierAccesAdmin();
+            load_controller('app/contrôleurs/AdminCacheControleur.php');
+            $ctrl = new AdminCacheControleur();
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                $ctrl->gererAction();
+            } else {
+                $ctrl->index();
+            }
+            break;
+
+
         default:
             load_controller('app/contrôleurs/AccueilControleur.php');
             (new AccueilControleur())->index();

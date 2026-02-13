@@ -1,21 +1,21 @@
 <?php
-require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../../config/database.php';
 
 class ArticleModele {
-    private $db;
+    private $baseDeDonnees;
 
     public function __construct() {
-        $this->db = (new Database())->getConnection();
+        $this->baseDeDonnees = (new Database())->getConnection();
     }
 
-    public function getAllArticles() {
-        $stmt = $this->db->query("SELECT * FROM articles ORDER BY created_at DESC");
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    public function obtenirTousLesArticles() {
+        $requete = $this->baseDeDonnees->query("SELECT * FROM articles WHERE deleted_at IS NULL ORDER BY created_at DESC");
+        return $requete->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function getArticleById($id) {
-        $stmt = $this->db->prepare("SELECT * FROM articles WHERE id = ?");
-        $stmt->execute([$id]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+    public function obtenirArticleParId($id) {
+        $requete = $this->baseDeDonnees->prepare("SELECT * FROM articles WHERE id = ? AND deleted_at IS NULL");
+        $requete->execute([$id]);
+        return $requete->fetch(PDO::FETCH_ASSOC);
     }
 }

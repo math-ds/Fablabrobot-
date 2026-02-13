@@ -1,0 +1,336 @@
+/**
+ * ============================================
+ * FABLABROBOT - SYSTÈME DE DESIGN GLOBAL
+ * Fichier principal qui importe tous les styles de base
+ * ============================================
+ *
+ * Ce fichier doit être importé en premier dans toutes les pages
+ * Ordre d'import : Variables → Composants → Utilitaires
+ */
+
+/* ==========================================
+   1. VARIABLES CSS GLOBALES
+   ========================================== */
+@import url('_variables.css');
+
+/* ==========================================
+   2. RESET & STYLES DE BASE
+   ========================================== */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-relaxed);
+  color: var(--white);
+  background: var(--gradient-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Liens par défaut */
+a {
+  color: var(--primary);
+  text-decoration: none;
+  transition: var(--transition-colors);
+}
+
+a:hover {
+  color: var(--primary-light);
+}
+
+/* Images responsives par défaut */
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Suppression des styles par défaut des boutons */
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* Inputs et formulaires */
+input,
+textarea,
+select {
+  font-family: inherit;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+}
+
+/* Listes */
+ul,
+ol {
+  list-style: none;
+}
+
+/* Scrollbar personnalisée (webkit) */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background-darker);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary-alpha-30);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+/* Sélection de texte */
+::selection {
+  background: var(--primary-alpha-30);
+  color: var(--white);
+}
+
+::-moz-selection {
+  background: var(--primary-alpha-30);
+  color: var(--white);
+}
+
+/* ==========================================
+   3. COMPOSANTS RÉUTILISABLES
+   ========================================== */
+@import url('_components.css');
+
+/* ==========================================
+   4. CLASSES UTILITAIRES
+   ========================================== */
+@import url('_utilitaires.css');
+
+/* ==========================================
+   5. LAYOUT PRINCIPAL
+   ========================================== */
+
+.main-wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-content {
+  flex: 1;
+  width: 100%;
+  max-width: var(--container-xl);
+  margin: 0 auto;
+  padding: var(--spacing-xl) var(--spacing-md);
+}
+
+/* Layout avec sidebar (admin) */
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.admin-sidebar {
+  width: var(--sidebar-width);
+  background: var(--gradient-primary);
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  transition: var(--transition-base);
+  z-index: var(--z-fixed);
+}
+
+.admin-sidebar.collapsed {
+  width: var(--sidebar-collapsed);
+}
+
+.admin-main {
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  transition: var(--transition-base);
+}
+
+.admin-sidebar.collapsed + .admin-main {
+  margin-left: var(--sidebar-collapsed);
+}
+
+/* ==========================================
+   6. RESPONSIVE - MOBILE FIRST
+   ========================================== */
+
+/* Mobile (par défaut) - 0 à 767px */
+@media (max-width: 767px) {
+  .main-content {
+    padding: var(--spacing-md) var(--spacing-sm);
+  }
+
+  .admin-sidebar {
+    width: 100%;
+    transform: translateX(-100%);
+  }
+
+  .admin-sidebar.open {
+    transform: translateX(0);
+  }
+
+  .admin-main {
+    margin-left: 0;
+  }
+}
+
+/* Tablette - 768px et plus */
+@media (min-width: 768px) {
+  .main-content {
+    padding: var(--spacing-2xl) var(--spacing-lg);
+  }
+
+  /* Grids responsive */
+  .grid-cols-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Desktop - 1024px et plus */
+@media (min-width: 1024px) {
+  .main-content {
+    padding: var(--spacing-3xl) var(--spacing-xl);
+  }
+
+  /* Grids responsive */
+  .grid-cols-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .grid-cols-4 {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Grand écran - 1400px et plus */
+@media (min-width: 1400px) {
+  .main-content {
+    max-width: var(--container-2xl);
+  }
+}
+
+/* ==========================================
+   7. ANIMATIONS D'APPARITION AU SCROLL
+   ========================================== */
+
+[data-aos] {
+  opacity: 0;
+  transition: opacity var(--transition-slow), transform var(--transition-slow);
+}
+
+[data-aos].aos-animate {
+  opacity: 1;
+}
+
+/* ==========================================
+   8. ÉTATS DE CHARGEMENT
+   ========================================== */
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--white-alpha-05) 0%,
+    var(--white-alpha-10) 50%,
+    var(--white-alpha-05) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-md);
+}
+
+.skeleton-text {
+  height: 1rem;
+  margin-bottom: var(--spacing-sm);
+}
+
+.skeleton-title {
+  height: 2rem;
+  width: 60%;
+  margin-bottom: var(--spacing-md);
+}
+
+.skeleton-card {
+  height: 200px;
+}
+
+/* ==========================================
+   9. MODES D'IMPRESSION
+   ========================================== */
+
+@media print {
+  body {
+    background: white;
+    color: black;
+  }
+
+  .no-print,
+  .admin-sidebar,
+  header,
+  footer,
+  .btn {
+    display: none !important;
+  }
+
+  .main-content {
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+}
+
+/* ==========================================
+   10. ACCESSIBILITÉ
+   ========================================== */
+
+/* Focus visible pour la navigation au clavier */
+*:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Masquer visuellement mais garder pour les lecteurs d'écran */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Réduire les animations pour les utilisateurs qui préfèrent */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

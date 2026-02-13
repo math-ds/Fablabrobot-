@@ -1,76 +1,51 @@
-<?php 
+<?php
+/* ============================================================
+   VUE : articles.php
+   Les données ($articles) sont transmises par ArticlesControleur->index()
+   Plus aucune connexion BDD ni requête SQL ici.
+   ============================================================ */
 
-$GLOBALS['baseUrl'] = '/Fablabrobot/public/';
+$baseUrl = $GLOBALS['baseUrl'] ?? '/Fablabrobot/public/';
 
+// CSS et titre pour le header
+$titrePage = 'Articles - FABLAB';
+$pageCss = ['article.css'];
 
 include(__DIR__ . '/../parties/header.php');
-
-
-$host = 'localhost';
-$dbname = 'fablab';
-$user = 'root';
-$pass = '';
-
-try {
-    $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8", $user, $pass);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $stmt = $pdo->query("SELECT * FROM articles ORDER BY created_at DESC");
-    $articles = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    echo "<div class='alert alert-danger'>Erreur : " . $e->getMessage() . "</div>";
-    $articles = [];
-}
-?>
-<?php
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-
 $roleUtilisateur = $_SESSION['utilisateur_role'] ?? 'Visiteur';
+
+// $articles est fourni par le contrôleur — pas besoin de requête ici
+if (!isset($articles)) {
+    $articles = [];
+}
 ?>
 
-
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Articles - FABLAB</title>
-
-  
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-
-  
-  
-  <link rel="stylesheet" href="<?= $GLOBALS['baseUrl'] ?>css/header.css">
-  <link rel="stylesheet" href="<?= $GLOBALS['baseUrl'] ?>css/article.css">
-</head>
-
-<body class="project-page">
-
-<div class="particles" id="particles"></div>
-
 <section class="hero-section">
-  <h1 class="hero-title">Nos Articles</h1>
-  <p class="hero-subtitle">Découvrez nos articles récents sur la technologie, l'innovation et le bien-être.</p>
+  <div class="hero-content">
+    <h1 class="hero-title">Nos Articles</h1>
+    <p class="hero-subtitle">Découvrez nos articles récents sur la technologie, l'innovation et le bien-être.</p>
+  </div>
 </section>
+
 <section class="section-recherche">
   <div class="search-filter">
-  <input type="text" id="searchInput" placeholder=" Rechercher un article...">
-  <select id="categoryFilter">
-    <option value="all">Toutes les catégories</option>
-   
-  </select>
-</div>
+    <input type="text" id="searchInput" placeholder="Rechercher un article...">
+    <select id="categoryFilter">
+      <option value="all">Toutes les catégories</option>
+    </select>
+  </div>
 </section>
+
 <?php if (in_array($roleUtilisateur, ['Éditeur', 'Editeur', 'Admin'])): ?>
   <div class="article-action">
-    <a href="?page=article_creation" class="btn btn-primary">
+    <button onclick="ouvrirModaleArticle()" class="btn btn-primary">
       <i class="fas fa-plus-circle"></i> Créer un article
-    </a>
+    </button>
   </div>
 <?php endif; ?>
 
@@ -91,24 +66,21 @@ $roleUtilisateur = $_SESSION['utilisateur_role'] ?? 'Visiteur';
           <div class="project-image">
             <?php if (!empty($article['image_url'])): ?>
               <?php
-              
               $imageUrl = $article['image_url'];
               if (!preg_match('/^https?:\/\//i', $imageUrl)) {
-                  
-                  $imageUrl = $GLOBALS['baseUrl'] . $imageUrl;
+                  $imageUrl = $baseUrl . $imageUrl;
               }
-              
               ?>
-              <img src="<?= htmlspecialchars($imageUrl); ?>" 
+              <img src="<?= htmlspecialchars($imageUrl); ?>"
                    alt="<?= htmlspecialchars($article['titre']); ?>"
                    loading="lazy"
                    onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">
-              <div class="image-fallback" style="display:none; width: 100%; height: 100%; background: linear-gradient(135deg, #00afa7, #008f88); display: none; align-items: center; justify-content: center;">
-                <i class="fas fa-newspaper" style="font-size: 3rem; color: white; opacity: 0.7;"></i>
+              <div class="image-fallback" style="display:none; width:100%; height:100%; background:linear-gradient(135deg,#00afa7,#008f88); align-items:center; justify-content:center;">
+                <i class="fas fa-newspaper" style="font-size:3rem; color:white; opacity:0.7;"></i>
               </div>
             <?php else: ?>
-              <div style="width: 100%; height: 100%; background: linear-gradient(135deg, #00afa7, #008f88); display: flex; align-items: center; justify-content: center;">
-                <i class="fas fa-newspaper" style="font-size: 3rem; color: white; opacity: 0.7;"></i>
+              <div style="width:100%; height:100%; background:linear-gradient(135deg,#00afa7,#008f88); display:flex; align-items:center; justify-content:center;">
+                <i class="fas fa-newspaper" style="font-size:3rem; color:white; opacity:0.7;"></i>
               </div>
             <?php endif; ?>
           </div>
@@ -116,9 +88,9 @@ $roleUtilisateur = $_SESSION['utilisateur_role'] ?? 'Visiteur';
           <div class="project-content">
             <h3 class="project-title"><?= htmlspecialchars($article['titre']); ?></h3>
             <p class="project-description">
-              <?php 
-              $excerpt = substr(strip_tags($article['contenu']), 0, 120);
-              echo htmlspecialchars($excerpt) . (strlen($article['contenu']) > 120 ? '...' : '');
+              <?php
+              $extrait = substr(strip_tags($article['contenu']), 0, 120);
+              echo htmlspecialchars($extrait) . (strlen($article['contenu']) > 120 ? '...' : '');
               ?>
             </p>
             <div class="project-tags">
@@ -137,23 +109,74 @@ $roleUtilisateur = $_SESSION['utilisateur_role'] ?? 'Visiteur';
   </div>
 </main>
 
+<!-- MODALE CRÉATION ARTICLE -->
+<div id="modaleArticleCreation" class="modal-creation">
+  <div class="modal-creation-content">
+    <div class="modal-creation-header">
+      <div>
+        <h2><i class="fas fa-pen-nib"></i> Créer un nouvel article</h2>
+        <p>Remplissez le formulaire ci-dessous pour publier un nouveau article</p>
+      </div>
+      <button class="close-modal-creation" onclick="fermerModaleArticle()">&times;</button>
+    </div>
+
+    <div class="modal-creation-body">
+      <div id="alertArticle"></div>
+
+      <form id="formArticle">
+        <?php require_once __DIR__ . '/../../helpers/CsrfHelper.php'; echo CsrfHelper::obtenirChampJeton(); ?>
+
+        <div class="form-group">
+          <label>Titre *</label>
+          <input type="text" name="titre" id="article_titre" required minlength="5" maxlength="200" placeholder="Titre de l'article...">
+          <small id="titre_error" style="color: #ff6b6b; display: none;"></small>
+        </div>
+
+        <div class="form-group">
+          <label>Auteur *</label>
+          <input type="text" name="auteur" id="article_auteur" value="<?= htmlspecialchars($_SESSION['utilisateur_nom'] ?? '') ?>" required minlength="2" maxlength="100" placeholder="Votre nom...">
+          <small id="auteur_error" style="color: #ff6b6b; display: none;"></small>
+        </div>
+
+        <div class="form-group">
+          <label>Contenu *</label>
+          <textarea name="contenu" id="article_contenu" rows="10" required minlength="10" maxlength="10000" placeholder="Contenu de l'article..."></textarea>
+          <small id="contenu_error" style="color: #ff6b6b; display: none;"></small>
+        </div>
+
+        <div class="form-group">
+          <label>URL de l'image (optionnel)</label>
+          <input type="text" name="image_url" id="article_image_url" placeholder="https://exemple.com/image.jpg" oninput="previewArticleImage(this.value)">
+
+          <div class="info-box">
+            <strong>💡 Astuce :</strong> Vous pouvez coller n'importe quelle URL d'image depuis Google, Discord, etc.
+          </div>
+
+          <div id="articleImagePreviewContainer" class="image-preview-container">
+            <p><strong>Aperçu :</strong></p>
+            <img id="articleImagePreview" alt="Aperçu de l'image">
+            <div id="articleLoadingSpinner" class="loading-spinner">
+              <i class="fas fa-spinner fa-spin"></i> Chargement...
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" onclick="fermerModaleArticle()">
+            <i class="fas fa-times"></i> Annuler
+          </button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-paper-plane"></i> Publier
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <script>
-function createParticles() {
-  const particles = document.getElementById('particles');
-  for (let i = 0; i < 50; i++) {
-    const particle = document.createElement('div');
-    particle.className = 'particle';
-    particle.style.left = Math.random() * 100 + '%';
-    particle.style.top = Math.random() * 100 + '%';
-    particle.style.animationDelay = Math.random() * 6 + 's';
-    particle.style.animationDuration = (Math.random() * 3 + 3) + 's';
-    particles.appendChild(particle);
-  }
-}
-document.addEventListener('DOMContentLoaded', createParticles);
-
-
-document.addEventListener("DOMContentLoaded", () => {
+// Recherche et filtrage
+document.addEventListener('DOMContentLoaded', () => {
   const searchInput = document.getElementById("searchInput");
   const categoryFilter = document.getElementById("categoryFilter");
   const cards = document.querySelectorAll(".project-card");
@@ -177,8 +200,198 @@ document.addEventListener("DOMContentLoaded", () => {
   searchInput.addEventListener("input", filtrer);
   categoryFilter.addEventListener("change", filtrer);
 });
+
+// Gestion modale article
+window.ouvrirModaleArticle = function() {
+  const modal = document.getElementById('modaleArticleCreation');
+  const form = document.getElementById('formArticle');
+  const alert = document.getElementById('alertArticle');
+  const preview = document.getElementById('articleImagePreviewContainer');
+
+  if (!modal) {
+    console.error('Modale article non trouvée');
+    return;
+  }
+
+  modal.classList.add('active');
+  if (form) form.reset();
+  if (alert) alert.innerHTML = '';
+  if (preview) preview.classList.remove('active');
+};
+
+window.fermerModaleArticle = function() {
+  const modal = document.getElementById('modaleArticleCreation');
+  if (modal) {
+    modal.classList.remove('active');
+  }
+};
+
+// Fermer avec Escape
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const modal = document.getElementById('modaleArticleCreation');
+    if (modal && modal.classList.contains('active')) {
+      window.fermerModaleArticle();
+    }
+  }
+});
+
+// Fermer en cliquant à l'extérieur
+document.addEventListener('click', function(event) {
+  const modal = document.getElementById('modaleArticleCreation');
+  if (event.target === modal) {
+    window.fermerModaleArticle();
+  }
+});
+
+// Preview image
+let articleImageTimeout = null;
+function previewArticleImage(url) {
+  const preview = document.getElementById('articleImagePreview');
+  const container = document.getElementById('articleImagePreviewContainer');
+  const spinner = document.getElementById('articleLoadingSpinner');
+
+  if (articleImageTimeout) clearTimeout(articleImageTimeout);
+
+  container.classList.remove('active');
+  spinner.classList.remove('active');
+
+  if (url && url.trim() !== '') {
+    container.classList.add('active');
+    spinner.classList.add('active');
+    preview.style.opacity = '0.3';
+
+    articleImageTimeout = setTimeout(() => {
+      spinner.classList.remove('active');
+      preview.style.opacity = '1';
+    }, 5000);
+
+    preview.src = url;
+    preview.onload = () => {
+      clearTimeout(articleImageTimeout);
+      spinner.classList.remove('active');
+      preview.style.opacity = '1';
+    };
+    preview.onerror = () => {
+      clearTimeout(articleImageTimeout);
+      spinner.classList.remove('active');
+      container.classList.remove('active');
+    };
+  }
+}
+
+// Validation côté client
+function validerFormArticle() {
+  const titre = document.getElementById('article_titre');
+  const auteur = document.getElementById('article_auteur');
+  const contenu = document.getElementById('article_contenu');
+  let isValid = true;
+
+  // Reset erreurs
+  document.querySelectorAll('small[id$="_error"]').forEach(el => el.style.display = 'none');
+
+  // Validation titre
+  if (titre.value.trim().length < 5 || titre.value.trim().length > 200) {
+    document.getElementById('titre_error').textContent = 'Le titre doit contenir entre 5 et 200 caractères';
+    document.getElementById('titre_error').style.display = 'block';
+    isValid = false;
+  }
+
+  // Validation auteur
+  if (auteur.value.trim().length < 2 || auteur.value.trim().length > 100) {
+    document.getElementById('auteur_error').textContent = "L'auteur doit contenir entre 2 et 100 caractères";
+    document.getElementById('auteur_error').style.display = 'block';
+    isValid = false;
+  }
+
+  // Validation contenu
+  if (contenu.value.trim().length < 10 || contenu.value.trim().length > 10000) {
+    document.getElementById('contenu_error').textContent = 'Le contenu doit contenir entre 10 et 10 000 caractères';
+    document.getElementById('contenu_error').style.display = 'block';
+    isValid = false;
+  }
+
+  return isValid;
+}
+
+// Soumission formulaire AJAX avec sécurité
+let articleSubmitting = false;
+const formArticle = document.getElementById('formArticle');
+if (formArticle) {
+  formArticle.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    // Empêcher la double soumission - vérifier IMMÉDIATEMENT
+    if (articleSubmitting) {
+      console.warn('Soumission déjà en cours, ignorée');
+      return;
+    }
+
+    // Désactiver IMMÉDIATEMENT le bouton avant toute validation
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const alertDiv = document.getElementById('alertArticle');
+
+    articleSubmitting = true;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Publication...';
+
+    // Validation côté client
+    if (!validerFormArticle()) {
+      // Réactiver le bouton si la validation échoue
+      articleSubmitting = false;
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Publier';
+      return;
+    }
+
+    const formData = new FormData(e.target);
+
+  try {
+    // Récupérer le token CSRF du meta tag
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+    const response = await fetch('?page=article_enregistrer', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        ...(csrfToken && { 'X-CSRF-Token': csrfToken })
+      },
+      credentials: 'same-origin'
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+
+    if (result.success) {
+      alertDiv.innerHTML = `<div class="alert-modal alert-success">${result.message}</div>`;
+      e.target.reset();
+      setTimeout(() => {
+        fermerModaleArticle();
+        location.reload();
+      }, 1500);
+    } else {
+      alertDiv.innerHTML = `<div class="alert-modal alert-danger">${result.message || 'Une erreur est survenue'}</div>`;
+    }
+  } catch (error) {
+    console.error('Erreur:', error);
+    alertDiv.innerHTML = '<div class="alert-modal alert-danger">Erreur lors de la publication de l\'article. Veuillez réessayer.</div>';
+  } finally {
+    articleSubmitting = false;
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Publier';
+  }
+  });
+} else {
+  console.error('Formulaire article non trouvé');
+}
+
+console.log('Script modale article chargé');
+console.log('Modale article:', document.getElementById('modaleArticleCreation'));
+console.log('Formulaire article:', document.getElementById('formArticle'));
 </script>
 
 <?php include(__DIR__ . '/../parties/footer.php'); ?>
-</body>
-</html>
