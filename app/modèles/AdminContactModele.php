@@ -4,7 +4,11 @@ require_once __DIR__ . '/../../config/database.php';
 class AdminContactModele
 {
     private PDO $baseDeDonnees;
-    public function __construct() { $this->baseDeDonnees = getDatabase(); }
+
+    public function __construct()
+    {
+        $this->baseDeDonnees = getDatabase();
+    }
 
     public function tousLesElements(): array
     {
@@ -24,28 +28,21 @@ class AdminContactModele
         return $requete->execute([':id' => $id]);
     }
 
-    /**
-     * Suppression définitive d'un message de contact (hard delete)
-     * À utiliser avec précaution
-     */
+    
     public function supprimerDefinitivement(int $id): bool
     {
         $requete = $this->baseDeDonnees->prepare("DELETE FROM contact_messages WHERE id = :id");
         return $requete->execute([':id' => $id]);
     }
 
-    /**
-     * Restaurer un message de contact supprimé
-     */
+    
     public function restaurer(int $id): bool
     {
         $requete = $this->baseDeDonnees->prepare("UPDATE contact_messages SET deleted_at = NULL WHERE id = :id");
         return $requete->execute([':id' => $id]);
     }
 
-    /**
-     * Récupérer tous les messages de contact supprimés (dans la corbeille)
-     */
+    
     public function elementsSupprimes(): array
     {
         $sql = "SELECT id, nom, email, sujet, message, date_envoi, deleted_at

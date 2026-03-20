@@ -1,53 +1,55 @@
 <?php
 
-/**
- * Contrôleur d'Administration du Cache
- * Permet de gérer le système de cache depuis l'interface admin
- */
-class AdminCacheControleur {
-    
+
+class AdminCacheControleur
+{
     private $cache;
-    
-    public function __construct() {
+
+    public function __construct()
+    {
         require_once __DIR__ . '/../helpers/GestionnaireCache.php';
         require_once __DIR__ . '/../helpers/CacheFichier.php';
         require_once __DIR__ . '/../helpers/CacheMemoire.php';
-        
+
         $this->cache = GestionnaireCache::obtenirInstance();
     }
+
     
-    /**
-     * Page principale de gestion du cache
-     */
-    public function index() {
-        // Initialiser le token CSRF
+    public function index()
+    {
+        
         require_once __DIR__ . '/../helpers/CsrfHelper.php';
         CsrfHelper::init();
 
         $stats = $this->cache->obtenirStatistiques();
         $actif = $this->cache->estActif();
 
-        // Charger la config
+        
         $config = require __DIR__ . '/../../config/cache.php';
 
         require_once __DIR__ . '/../vues/admin/cache-admin.php';
     }
+
     
-    /**
-     * Gère les différentes actions sur le cache
-     */
-    public function gererAction() {
-        // Vérifier le token CSRF
+    public function gererAction()
+    {
+        
         require_once __DIR__ . '/../helpers/CsrfHelper.php';
 
-        if (!isset($_POST['csrf_token']) || !CsrfHelper::validerJeton($_POST['csrf_token'])) {
+        $tokenPost = (string)($_POST['csrf_token'] ?? '');
+        $tokenHeader = (string)($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
+        $csrfValide = CsrfHelper::validerJeton($tokenPost) || CsrfHelper::validerJeton($tokenHeader);
+
+        if (!$csrfValide) {
             require_once __DIR__ . '/../helpers/JsonResponseHelper.php';
-            JsonResponseHelper::erreur('Token CSRF invalide', 403);
+            JsonResponseHelper::erreurAvecDonnees('Token CSRF invalide', 403, [
+                'new_token' => CsrfHelper::genererJeton()
+            ]);
             return;
         }
-        
+
         $action = $_POST['action'] ?? '';
-        
+
         switch ($action) {
             case 'vider':
                 $this->viderCache();
@@ -70,11 +72,10 @@ class AdminCacheControleur {
                 JsonResponseHelper::erreur('Action inconnue', 400);
         }
     }
+
     
-    /**
-     * Vide complètement le cache
-     */
-    private function viderCache() {
+    private function viderCache()
+    {
         require_once __DIR__ . '/../helpers/JsonResponseHelper.php';
 
         $succes = $this->cache->vider();
@@ -85,11 +86,10 @@ class AdminCacheControleur {
             JsonResponseHelper::erreur('Erreur lors du vidage du cache');
         }
     }
+
     
-    /**
-     * Nettoie les entrées expirées
-     */
-    private function nettoyerExpire() {
+    private function nettoyerExpire()
+    {
         require_once __DIR__ . '/../helpers/JsonResponseHelper.php';
 
         $succes = $this->cache->nettoyerExpire();
@@ -100,11 +100,10 @@ class AdminCacheControleur {
             JsonResponseHelper::erreur('Erreur lors du nettoyage');
         }
     }
+
     
-    /**
-     * Active ou désactive le cache
-     */
-    private function basculerEtat() {
+    private function basculerEtat()
+    {
         require_once __DIR__ . '/../helpers/JsonResponseHelper.php';
 
         if ($this->cache->estActif()) {
@@ -120,10 +119,9 @@ class AdminCacheControleur {
         JsonResponseHelper::succes(['actif' => $etat], $message);
     }
 
-    /**
-     * Retourne les statistiques du cache
-     */
-    private function obtenirStatistiques() {
+    
+    private function obtenirStatistiques()
+    {
         require_once __DIR__ . '/../helpers/JsonResponseHelper.php';
 
         $stats = $this->cache->obtenirStatistiques();

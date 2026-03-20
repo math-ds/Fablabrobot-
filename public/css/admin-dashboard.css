@@ -1,25 +1,9 @@
-/**
- * ============================================
- * DASHBOARD ADMIN - Styles spécifiques
- * Hérite de admin-common.css pour .dashboard, .stat-card, etc.
- * ============================================
- */
-
-/* ==========================================
-   GRILLE DES CARTES DASHBOARD
-   ========================================== */
-
 .cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: var(--gap-xl);
+  grid-template-columns: 1fr;
+  gap: var(--gap-md);
   margin-bottom: var(--spacing-3xl);
 }
-
-/* ==========================================
-   CARTES DASHBOARD (override du .card de _components.css)
-   Style turquoise pour cohérence avec les stats cards
-   ========================================== */
 
 .card {
   background: rgba(0, 175, 167, 0.08);
@@ -68,23 +52,37 @@
   margin: 0;
 }
 
-/* Couleurs d'icônes spécifiques par type - harmonisées avec le turquoise */
-.card-articles h3 i { color: #00afa7; }
-.card-projets h3 i { color: #00c9bd; }
-.card-utilisateurs h3 i { color: #00d4c7; }
-.card-contact h3 i { color: #00afa7; }
-.card-webtv h3 i { color: #00c9bd; }
-.card-commentaires h3 i { color: #00d4c7; }
-.card-cache h3 i { color: #00afa7; }
-.card-corbeille h3 i { color: #00c9bd; }
-
-/* ==========================================
-   GRAPHIQUES ET DIAGRAMMES
-   ========================================== */
+.card-articles h3 i {
+  color: #00afa7;
+}
+.card-projets h3 i {
+  color: #00c9bd;
+}
+.card-utilisateurs h3 i {
+  color: #00d4c7;
+}
+.card-contact h3 i {
+  color: #00afa7;
+}
+.card-actualites h3 i {
+  color: #00d4c7;
+}
+.card-webtv h3 i {
+  color: #00c9bd;
+}
+.card-commentaires h3 i {
+  color: #00d4c7;
+}
+.card-cache h3 i {
+  color: #00afa7;
+}
+.card-corbeille h3 i {
+  color: #00c9bd;
+}
 
 .charts-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  grid-template-columns: 1fr;
   gap: var(--gap-xl);
   margin-top: var(--spacing-3xl);
 }
@@ -113,10 +111,6 @@
   gap: var(--gap-sm);
 }
 
-/* ==========================================
-   FLUX D'ACTIVITÉ RÉCENTE
-   ========================================== */
-
 .activity-feed {
   background: var(--white-alpha-05);
   border: 1px solid var(--primary-alpha-20);
@@ -144,8 +138,8 @@
 }
 
 .activity-icon {
-  width: 45px;
-  height: 45px;
+  width: 35px;
+  height: 35px;
   background: var(--primary-alpha-10);
   border-radius: var(--radius-circle);
   display: flex;
@@ -165,22 +159,18 @@
   margin-top: var(--spacing-xs);
 }
 
-/* ==========================================
-   RESPONSIVE
-   ========================================== */
-
-@media (max-width: 768px) {
+@media (min-width: 769px) {
   .cards {
-    grid-template-columns: 1fr;
-    gap: var(--gap-md);
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--gap-xl);
   }
 
   .charts-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
   }
 
   .activity-icon {
-    width: 35px;
-    height: 35px;
+    width: 45px;
+    height: 45px;
   }
 }

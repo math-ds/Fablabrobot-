@@ -2,8 +2,6 @@
 $baseUrl = $GLOBALS['baseUrl'] ?? '/Fablabrobot/public/';
 ?>
 
-<link rel="stylesheet" href="<?= $baseUrl ?>css/header-auth.css">
-
 <header class="header-auth">
     <div class="nav-container">
         <div class="logo-section">

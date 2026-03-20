@@ -1,0 +1,203 @@
+.dashboard[data-admin-projets="1"] .table-header {
+  gap: 10px;
+}
+
+.dashboard[data-admin-projets="1"] #tableauProjets {
+  table-layout: fixed !important;
+  width: 100%;
+}
+
+.dashboard[data-admin-projets="1"] .table-container {
+  --admin-table-thumb-width: 126px;
+  --admin-table-thumb-height: 82px;
+}
+
+.dashboard[data-admin-projets="1"] #tableauProjets td[data-col="image"] .image-container {
+  width: var(--admin-table-thumb-width);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.dashboard[data-admin-projets="1"] #tableauProjets td[data-col="image"] {
+  width: 1%;
+  min-width: 132px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.dashboard[data-admin-projets="1"] #tableauProjets .project-thumb {
+  width: var(--admin-table-thumb-width) !important;
+  height: var(--admin-table-thumb-height) !important;
+}
+
+.dashboard[data-admin-projets="1"] #tableauProjets td[data-col="titre"] strong,
+.dashboard[data-admin-projets="1"] #tableauProjets td[data-col="description"],
+.dashboard[data-admin-projets="1"] #tableauProjets td[data-col="technologies"] {
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: normal;
+  line-height: 1.35;
+  overflow: hidden;
+}
+
+.dashboard[data-admin-projets="1"] #tableauProjets td[data-col="titre"] strong {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  text-overflow: ellipsis;
+}
+
+.dashboard[data-admin-projets="1"] #tableauProjets td[data-col="categorie"] {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.dashboard[data-admin-projets="1"] #tableauProjets td[data-col="categorie"] .badge-categorie {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 12px;
+  min-height: 30px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  min-width: 108px;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.dashboard[data-admin-projets="1"] #tableauProjets td[data-col="date"],
+.dashboard[data-admin-projets="1"] #tableauProjets td[data-col="actions"] {
+  text-align: center;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.dashboard[data-admin-projets="1"] #tableauProjets th.col-actions,
+.dashboard[data-admin-projets="1"] #tableauProjets td[data-col="actions"] {
+  width: 104px !important;
+  min-width: 104px !important;
+  max-width: 104px !important;
+}
+
+.dashboard[data-admin-projets="1"] #tableauProjets td[data-col="actions"] .btn {
+  min-width: 34px;
+  min-height: 34px;
+  padding: 6px 7px;
+}
+
+@media (max-width: 768px) {
+  .dashboard[data-admin-projets="1"] .table-header .stats-badge {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .dashboard[data-admin-projets="1"] .table-container {
+    --admin-table-thumb-width: 104px;
+    --admin-table-thumb-height: 68px;
+  }
+
+  .dashboard[data-admin-projets="1"] #tableauProjets td[data-col="image"] {
+    align-items: center !important;
+    text-align: center !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .dashboard[data-admin-projets="1"] #tableauProjets td[data-col="image"] .image-container {
+    display: flex !important;
+    justify-content: center;
+    align-self: center;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  .dashboard[data-admin-projets="1"] #tableauProjets .project-thumb {
+    align-self: center;
+  }
+
+  .dashboard[data-admin-projets="1"] #tableauProjets td[data-col="actions"] {
+    flex-direction: row !important;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+
+  .dashboard[data-admin-projets="1"] #tableauProjets td[data-col="actions"] .btn {
+    min-width: 40px;
+    min-height: 40px;
+    padding: 8px 10px;
+  }
+
+  .dashboard[data-admin-projets="1"] #tableauProjets td[data-col="description"],
+  .dashboard[data-admin-projets="1"] #tableauProjets td[data-col="technologies"] {
+    overflow: visible;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1200px) {
+  .dashboard[data-admin-projets="1"] .table-container {
+    --admin-table-thumb-width: 116px;
+    --admin-table-thumb-height: 76px;
+  }
+}
+
+@media (min-width: 1201px) {
+  .dashboard[data-admin-projets="1"] .table-container {
+    --admin-table-thumb-width: 132px;
+    --admin-table-thumb-height: 86px;
+  }
+}
+
+@media (min-width: 769px) {
+  .dashboard[data-admin-projets="1"] #tableauProjets th:nth-child(1),
+  .dashboard[data-admin-projets="1"] #tableauProjets td:nth-child(1) {
+    width: 11%;
+  }
+  .dashboard[data-admin-projets="1"] #tableauProjets th:nth-child(2),
+  .dashboard[data-admin-projets="1"] #tableauProjets td:nth-child(2) {
+    width: 19%;
+  }
+  .dashboard[data-admin-projets="1"] #tableauProjets th:nth-child(3),
+  .dashboard[data-admin-projets="1"] #tableauProjets td:nth-child(3) {
+    width: 13%;
+  }
+  .dashboard[data-admin-projets="1"] #tableauProjets th:nth-child(4),
+  .dashboard[data-admin-projets="1"] #tableauProjets td:nth-child(4) {
+    width: 10%;
+  }
+  .dashboard[data-admin-projets="1"] #tableauProjets th:nth-child(5),
+  .dashboard[data-admin-projets="1"] #tableauProjets td:nth-child(5) {
+    width: 13%;
+  }
+  .dashboard[data-admin-projets="1"] #tableauProjets th:nth-child(6),
+  .dashboard[data-admin-projets="1"] #tableauProjets td:nth-child(6) {
+    width: 13%;
+  }
+  .dashboard[data-admin-projets="1"] #tableauProjets th:nth-child(7),
+  .dashboard[data-admin-projets="1"] #tableauProjets td:nth-child(7) {
+    width: 10%;
+  }
+  .dashboard[data-admin-projets="1"] #tableauProjets th:nth-child(8),
+  .dashboard[data-admin-projets="1"] #tableauProjets td:nth-child(8) {
+    width: 11%;
+  }
+
+  .dashboard[data-admin-projets="1"] #tableauProjets .project-description-text,
+  .dashboard[data-admin-projets="1"] #tableauProjets .project-tech-text {
+    display: block;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+}

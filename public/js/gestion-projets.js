@@ -1,8 +1,51 @@
-/**
- * Gestion des Projets - Admin
- */
-
 let imagePreviewInitialized = false;
+let projetSearchTimer = null;
+
+function estPageAdminProjets() {
+  if (document.querySelector("[data-admin-projets='1']")) {
+    return true;
+  }
+  const params = new URLSearchParams(window.location.search);
+  return params.get("page") === "admin-projets";
+}
+
+function construireUrlAdminProjets(q = "", page = 1) {
+  const url = new URL(window.location.href);
+  url.searchParams.set("page", "admin-projets");
+  url.searchParams.delete("action");
+
+  const recherche = String(q || "").trim();
+  if (recherche === "") {
+    url.searchParams.delete("q");
+  } else {
+    url.searchParams.set("q", recherche);
+  }
+
+  const pageNormalisee = Number.parseInt(String(page ?? 1), 10);
+  if (!Number.isFinite(pageNormalisee) || pageNormalisee <= 1) {
+    url.searchParams.delete("p");
+  } else {
+    url.searchParams.set("p", String(pageNormalisee));
+  }
+
+  return url;
+}
+
+async function chargerProjetsAdmin(q = "", page = 1, options = {}) {
+  const url = construireUrlAdminProjets(q, page);
+  const { pushState = true, scrollToTop = false, preserveLocalState = false } = options;
+  if (window.AdminDashboardAjax && typeof window.AdminDashboardAjax.load === "function") {
+    await window.AdminDashboardAjax.load(url, {
+      pushState,
+      scrollToTop,
+      preserveLocalState,
+      showErrorToast: true,
+    });
+    return;
+  }
+
+  window.location.href = url.toString();
+}
 
 document.addEventListener("DOMContentLoaded", function () {
   const modal = document.getElementById("modaleProjet");
@@ -10,22 +53,31 @@ document.addEventListener("DOMContentLoaded", function () {
   const formulaire = document.getElementById("formulaireProjet");
 
   if (closeBtn) closeBtn.addEventListener("click", fermerModale);
-  if (modal)
-    window.addEventListener(
-      "click",
-      (e) => e.target === modal && fermerModale(),
-    );
+  if (modal) window.addEventListener("click", (e) => e.target === modal && fermerModale());
 
-  // Intercepter la soumission du formulaire pour AJAX
   if (formulaire) {
     formulaire.addEventListener("submit", async function (e) {
       e.preventDefault();
 
       const formData = new FormData(this);
       const action = formData.get("action");
+      const imageUrlValue = String(formData.get("image_url") || "").trim();
+      const fileInput = this.querySelector("#imageFile");
+      const hasLocalFile =
+        fileInput instanceof HTMLInputElement &&
+        fileInput.files !== null &&
+        fileInput.files.length > 0;
       const boutonSoumettre = this.querySelector('button[type="submit"]');
 
-      // Désactiver le bouton pendant l'envoi
+      if (
+        action === "update" &&
+        !hasLocalFile &&
+        imageUrlValue !== "" &&
+        !isExternalImageUrl(imageUrlValue)
+      ) {
+        formData.set("image_url", "");
+      }
+
       boutonSoumettre.disabled = true;
       boutonSoumettre.textContent = "Envoi en cours...";
 
@@ -36,52 +88,165 @@ document.addEventListener("DOMContentLoaded", function () {
           ToastNotification.succes(data.message);
           fermerModale();
 
-          // Mettre à jour la table dynamiquement
-          mettreAJourTableProjets(action, data.data?.project);
+          if (
+            window.AdminDashboardAjax &&
+            typeof window.AdminDashboardAjax.refreshCurrent === "function"
+          ) {
+            await window.AdminDashboardAjax.refreshCurrent({
+              preserveLocalState: false,
+              scrollToTop: false,
+            });
+          } else {
+            window.location.reload();
+          }
         }
       } catch (error) {
-        ToastNotification.erreur(
-          error.data?.message || "Erreur lors de l'enregistrement",
-        );
+        ToastNotification.erreur(error.data?.message || "Erreur lors de l'enregistrement");
 
-        // Afficher les erreurs de validation si présentes
         if (error.data?.error?.validation) {
           Object.values(error.data.error.validation).forEach((erreur) => {
             ToastNotification.erreur(erreur);
           });
         }
       } finally {
-        // Réactiver le bouton
         boutonSoumettre.disabled = false;
-        boutonSoumettre.textContent =
-          action === "create" ? "Créer" : "Modifier";
+        boutonSoumettre.textContent = action === "create" ? "Créer" : "Modifier";
       }
     });
   }
+
+  document.addEventListener("click", (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target) {
+      return;
+    }
+
+    const openCreateBtn = target.closest("[data-projets-open-create]");
+    if (openCreateBtn) {
+      event.preventDefault();
+      ouvrirModale("create");
+      return;
+    }
+
+    const editBtn = target.closest("[data-projet-edit-id]");
+    if (editBtn) {
+      event.preventDefault();
+      const id = Number.parseInt(String(editBtn.getAttribute("data-projet-edit-id") || "0"), 10);
+      if (id > 0) {
+        editerProjet(id);
+      }
+      return;
+    }
+
+    const deleteBtn = target.closest("[data-projet-delete-id]");
+    if (deleteBtn) {
+      event.preventDefault();
+      const id = Number.parseInt(
+        String(deleteBtn.getAttribute("data-projet-delete-id") || "0"),
+        10
+      );
+      const titre = String(deleteBtn.getAttribute("data-projet-delete-title") || "ce projet");
+      if (id > 0) {
+        supprimerProjet(id, titre);
+      }
+      return;
+    }
+
+    const closeModalBtn = target.closest("[data-projet-close-modal]");
+    if (closeModalBtn) {
+      event.preventDefault();
+      fermerModale();
+    }
+  });
+
+  document.addEventListener("change", (event) => {
+    const input = event.target instanceof HTMLInputElement ? event.target : null;
+    if (!input || !input.matches("[data-projet-image-file-input]")) {
+      return;
+    }
+    previewLocalImage(input);
+  });
+
+  document.addEventListener(
+    "error",
+    (event) => {
+      const img = event.target instanceof HTMLImageElement ? event.target : null;
+      if (!img) {
+        return;
+      }
+
+      const originalSrc = String(img.getAttribute("data-proxy-src-on-error") || "");
+      if (!originalSrc || img.dataset.proxyTried === "1") {
+        return;
+      }
+
+      img.dataset.proxyTried = "1";
+      if (typeof window.essayerImageProxy === "function") {
+        window.essayerImageProxy(img, originalSrc);
+      }
+    },
+    true
+  );
+});
+
+document.addEventListener("input", (event) => {
+  if (!estPageAdminProjets()) {
+    return;
+  }
+
+  const input = event.target instanceof HTMLInputElement ? event.target : null;
+  if (!input || input.id !== "champRecherche") {
+    return;
+  }
+
+  if (projetSearchTimer) {
+    clearTimeout(projetSearchTimer);
+  }
+
+  projetSearchTimer = window.setTimeout(() => {
+    void chargerProjetsAdmin(input.value, 1, {
+      pushState: true,
+      scrollToTop: false,
+      preserveLocalState: false,
+    });
+  }, 320);
+});
+
+window.addEventListener("popstate", () => {
+  if (!estPageAdminProjets()) {
+    return;
+  }
+
+  const url = new URL(window.location.href);
+  const q = String(url.searchParams.get("q") || "");
+  const p = Number.parseInt(String(url.searchParams.get("p") || "1"), 10);
+
+  void chargerProjetsAdmin(q, Number.isFinite(p) && p > 0 ? p : 1, {
+    pushState: false,
+    scrollToTop: false,
+    preserveLocalState: false,
+  });
 });
 
 function ouvrirModale(action, data = null) {
   const modal = document.getElementById("modaleProjet");
   if (!modal) return;
 
-  // Initialiser l'aperçu d'image la première fois que le modal s'ouvre
   if (!imagePreviewInitialized) {
     ImagePreviewHelper.init({
-      inputId: 'image_url',
-      containerId: 'imagePreviewContainer',
-      imgId: 'imagePreview',
-      spinnerId: 'imageLoadingSpinner',
-      errorId: 'imagePreviewError',
-      useProxy: true
+      inputId: "image_url",
+      containerId: "imagePreviewContainer",
+      imgId: "imagePreview",
+      spinnerId: "imageLoadingSpinner",
+      errorId: "imagePreviewError",
+      useProxy: true,
     });
     imagePreviewInitialized = true;
   }
 
   const titre = document.getElementById("titreModale");
-  titre.textContent =
-    action === "create" ? "Nouveau Projet" : "Modifier le Projet";
+  titre.textContent = action === "create" ? "Nouveau Projet" : "Modifier le Projet";
 
-  // Mettre à jour le texte du bouton
   const boutonSoumettre = document.querySelector('#formulaireProjet button[type="submit"]');
   if (boutonSoumettre) {
     boutonSoumettre.textContent = action === "create" ? "Créer" : "Modifier";
@@ -90,15 +255,17 @@ function ouvrirModale(action, data = null) {
   document.getElementById("actionFormulaire").value = action;
   document.getElementById("formulaireProjet").reset();
   document.getElementById("idProjet").value = "";
+  const formulaireProjet = document.getElementById("formulaireProjet");
+  if (formulaireProjet) {
+    delete formulaireProjet.dataset.imageSourceOriginal;
+  }
 
-  // Réinitialiser l'aperçu d'image avec le helper
   ImagePreviewHelper.reset({
-    containerId: 'imagePreviewContainer',
-    imgId: 'imagePreview',
-    errorId: 'imagePreviewError'
+    containerId: "imagePreviewContainer",
+    imgId: "imagePreview",
+    errorId: "imagePreviewError",
   });
 
-  // Réinitialiser l'aperçu local
   const localPreviewContainer = document.getElementById("localPreviewContainer");
   if (localPreviewContainer) localPreviewContainer.style.display = "none";
 
@@ -114,7 +281,6 @@ function editerProjet(id) {
   ouvrirModale("update");
   document.getElementById("idProjet").value = id;
 
-  // Récupérer les données complètes depuis le JSON
   const donneesProjets = document.getElementById("donneesProjets");
   if (donneesProjets) {
     try {
@@ -124,30 +290,38 @@ function editerProjet(id) {
       if (projet) {
         document.getElementById("title").value = projet.title || "";
         document.getElementById("description").value = projet.description || "";
-        document.getElementById("auteur").value = projet.auteur || "";
-        document.getElementById("description_detailed").value =
-          projet.description_detailed || "";
-        document.getElementById("technologies").value =
-          projet.technologies || "";
+        document.getElementById("description_detailed").value = projet.description_detailed || "";
+        document.getElementById("technologies").value = projet.technologies || "";
         document.getElementById("features").value = projet.features || "";
         document.getElementById("challenges").value = projet.challenges || "";
-        document.getElementById("image_url").value = projet.image_url || "";
+        const imageSource = String(projet.image_url || "").trim();
+        const imageSourceResolved = buildProjectImageUrl(imageSource);
+        const imageUrlInput = document.getElementById("image_url");
+        if (imageUrlInput) {
+          imageUrlInput.value = imageSourceResolved;
+        }
+        const formulaireProjet = document.getElementById("formulaireProjet");
+        if (formulaireProjet) {
+          formulaireProjet.dataset.imageSourceOriginal = imageSourceResolved;
+        }
+        definirValeurSelectCategorieProjet(
+          document.getElementById("categorieProjet"),
+          projet.categorie || ""
+        );
 
-        // Déclencher l'aperçu de l'image si une URL existe
-        if (projet.image_url) {
-          ImagePreviewHelper.preview(projet.image_url, {
-            containerId: 'imagePreviewContainer',
-            imgId: 'imagePreview',
-            spinnerId: 'imageLoadingSpinner',
-            errorId: 'imagePreviewError',
-            useProxy: true
+        if (imageSourceResolved) {
+          ImagePreviewHelper.preview(imageSourceResolved, {
+            containerId: "imagePreviewContainer",
+            imgId: "imagePreview",
+            spinnerId: "imageLoadingSpinner",
+            errorId: "imagePreviewError",
+            useProxy: true,
           });
         } else {
-          // Réinitialiser l'aperçu si pas d'URL
           ImagePreviewHelper.reset({
-            containerId: 'imagePreviewContainer',
-            imgId: 'imagePreview',
-            errorId: 'imagePreviewError'
+            containerId: "imagePreviewContainer",
+            imgId: "imagePreview",
+            errorId: "imagePreviewError",
           });
         }
       }
@@ -171,58 +345,121 @@ async function supprimerProjet(id, titre) {
     if (data.success) {
       ToastNotification.succes(data.message || "Projet supprimé avec succès");
 
-      // Supprimer la ligne du tableau avec animation
-      const ligne = document.querySelector(`tr[data-projet-id="${id}"]`);
-      if (ligne) {
-        ligne.style.transition = "opacity 0.3s";
-        ligne.style.opacity = "0";
-        setTimeout(() => ligne.remove(), 300);
-      }
-
-      // Mettre à jour le compteur
-      const compteur = document.querySelector(".stats-badge");
-      if (compteur) {
-        const match = compteur.textContent.match(/\d+/);
-        if (match) {
-          const actuel = parseInt(match[0]);
-          compteur.textContent = compteur.textContent.replace(
-            /\d+/,
-            actuel - 1,
-          );
-        }
+      if (
+        window.AdminDashboardAjax &&
+        typeof window.AdminDashboardAjax.refreshAfterDelete === "function"
+      ) {
+        await window.AdminDashboardAjax.refreshAfterDelete({
+          deletedRows: 1,
+          preserveLocalState: false,
+          scrollToTop: false,
+        });
+      } else {
+        window.location.reload();
       }
     }
   } catch (error) {
-    ToastNotification.erreur(
-      error.data?.message || "Erreur lors de la suppression",
-    );
+    ToastNotification.erreur(error.data?.message || "Erreur lors de la suppression");
   }
 }
 
 function rechercherProjets() {
-  const valeur = document.getElementById("champRecherche").value.toLowerCase();
-  document.querySelectorAll("#tableauProjets tbody tr").forEach((ligne) => {
-    ligne.style.display = ligne.textContent.toLowerCase().includes(valeur)
-      ? ""
-      : "none";
-  });
+  if (!estPageAdminProjets()) {
+    return;
+  }
+  const valeur = String(document.getElementById("champRecherche")?.value || "");
+  void chargerProjetsAdmin(valeur, 1);
 }
 
 function previewLocalImage(input) {
-  ImagePreviewHelper.previewLocal(input, 'localPreview', 'localPreviewContainer');
+  ImagePreviewHelper.previewLocal(input, "localPreview", "localPreviewContainer");
 }
 
-// Fonction pour mettre à jour la table des projets dynamiquement
+function isExternalImageUrl(value) {
+  return /^https?:\/\//i.test(String(value || "").trim());
+}
+
+function buildProjectImageUrl(imageSource) {
+  const value = String(imageSource || "").trim();
+  if (value === "") {
+    return "";
+  }
+
+  if (/^https?:\/\//i.test(value)) {
+    return value;
+  }
+
+  if (/^\/?images\//i.test(value)) {
+    return value.replace(/^\/+/, "");
+  }
+
+  return `images/projets/${value.replace(/^\/+/, "")}`;
+}
+
+function definirValeurSelectCategorieProjet(selectElement, categorie) {
+  if (!(selectElement instanceof HTMLSelectElement)) {
+    return;
+  }
+
+  const valeur = String(categorie || "").trim();
+  if (valeur === "") {
+    selectElement.value = "";
+    return;
+  }
+
+  const normalisee = valeur
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  let canonique = valeur;
+
+  if (normalisee.includes("lectronique")) {
+    canonique = "Electronique";
+  } else if (normalisee.includes("ecanique") || normalisee.includes("canique")) {
+    canonique = "Mecanique";
+  } else if (normalisee.includes("impression") && normalisee.includes("3d")) {
+    canonique = "Impression 3D";
+  } else if (normalisee.includes("drone")) {
+    canonique = "Drone / FPV";
+  } else if (normalisee.includes("robot")) {
+    canonique = "Robotique";
+  } else if (normalisee.includes("program")) {
+    canonique = "Programmation";
+  } else if (normalisee.includes("autre")) {
+    canonique = "Autre";
+  }
+
+  const options = Array.from(selectElement.options);
+  const optionExistante = options.find(
+    (option) => String(option.value || "").trim().toLowerCase() === canonique.toLowerCase()
+  );
+
+  if (optionExistante) {
+    selectElement.value = optionExistante.value;
+    return;
+  }
+
+  const optionDynamique = selectElement.querySelector("option[data-dynamic-category='1']");
+  if (optionDynamique) {
+    optionDynamique.remove();
+  }
+
+  const option = document.createElement("option");
+  option.value = canonique;
+  option.textContent = canonique;
+  option.setAttribute("data-dynamic-category", "1");
+  selectElement.appendChild(option);
+  selectElement.value = canonique;
+}
+
 function mettreAJourTableProjets(action, projet) {
   const tbody = document.querySelector("#tableauProjets tbody");
   const donneesProjets = document.getElementById("donneesProjets");
 
   if (action === "create" && projet) {
-    // Ajouter une nouvelle ligne
     const nouvelleLigne = creerLigneProjet(projet);
     tbody.insertBefore(nouvelleLigne, tbody.firstChild);
 
-    // Mettre à jour le JSON embarqué
     if (donneesProjets) {
       try {
         const projets = JSON.parse(donneesProjets.textContent);
@@ -233,19 +470,14 @@ function mettreAJourTableProjets(action, projet) {
       }
     }
 
-    // Mettre à jour le compteur
     mettreAJourCompteurProjets(1);
   } else if (action === "update" && projet) {
-    // Mettre à jour la ligne existante
-    const ligneExistante = document.querySelector(
-      `tr[data-projet-id="${projet.id}"]`,
-    );
+    const ligneExistante = document.querySelector(`tr[data-projet-id="${projet.id}"]`);
     if (ligneExistante) {
       const nouvelleLigne = creerLigneProjet(projet);
       ligneExistante.replaceWith(nouvelleLigne);
     }
 
-    // Mettre à jour le JSON embarqué
     if (donneesProjets) {
       try {
         const projets = JSON.parse(donneesProjets.textContent);
@@ -261,91 +493,73 @@ function mettreAJourTableProjets(action, projet) {
   }
 }
 
-// Fonction pour créer une ligne de tableau pour un projet
 function creerLigneProjet(projet) {
   const tr = document.createElement("tr");
   tr.setAttribute("data-projet-id", projet.id);
 
-  const date = new Date(projet.created_at).toLocaleDateString("fr-FR");
+  const escapeHtml = (value) =>
+    String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
 
-  // Échapper les caractères spéciaux pour HTML
-  const title = projet.title
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "<")
-    .replace(/>/g, ">")
-    .replace(/"/g, '"')
-    .replace(/'/g, "&#39;");
-  const description = projet.description
-    .substring(0, 80)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "<")
-    .replace(/>/g, ">");
-  const auteur = projet.auteur
-    ? projet.auteur.replace(/&/g, "&amp;").replace(/</g, "<").replace(/>/g, ">")
-    : "N/A";
-  const technologies = projet.technologies
-    ? projet.technologies.substring(0, 40).replace(/&/g, "&amp;").replace(/</g, "<").replace(/>/g, ">")
-    : "N/A";
-  const imageUrl = projet.image_url
-    ? projet.image_url.replace(/"/g, '"').replace(/'/g, "&#39;")
-    : "";
-  const titleJs = projet.title.replace(/'/g, "\\'").replace(/"/g, '\\"');
+  const parseDate = new Date(projet.created_at || projet.updated_at || "");
+  const date = Number.isNaN(parseDate.getTime()) ? "" : parseDate.toLocaleDateString("fr-FR");
 
-  // Construire l'URL de l'image
-  let imageSrc = "";
-  if (projet.image_url) {
-    if (projet.image_url.startsWith("http://") || projet.image_url.startsWith("https://")) {
-      imageSrc = imageUrl;
-    } else {
-      imageSrc = "images/projets/" + imageUrl;
-    }
-  }
+  const titreBrut = String(projet.title ?? "");
+  const title = escapeHtml(titreBrut);
+  const description = escapeHtml(String(projet.description ?? "").substring(0, 60));
+  const auteur = escapeHtml(projet.auteur_nom || "N/A");
+  const categorie = escapeHtml(projet.categorie || "");
+  const technologies = escapeHtml(String(projet.technologies || "N/A").substring(0, 40));
+
+  const imageSource = String(projet.image_url || "").trim();
+  const imageSrc = imageSource !== "" ? escapeHtml(buildProjectImageUrl(imageSource)) : "";
 
   tr.innerHTML = `
-    <td style="text-align: center; padding: 10px;">
+    <td class="table-image-cell">
       ${
-        projet.image_url
+        imageSource !== ""
           ? `
-        <div class="image-container" style="display: inline-block; position: relative;">
+        <div class="image-container">
           <img src="${imageSrc}"
                alt="${title}"
-               class="project-image-thumb"
-               style="width: 100px; height: 70px; object-fit: cover; border-radius: 8px; border: 2px solid var(--card-border); display: block;"
-               onerror="essayerImageProxy(this, '${imageSrc.replace(/'/g, "\\'")}')">
-          <div class="no-image-fallback" style="display: none; width: 100px; height: 70px; background: rgba(0, 175, 167, 0.1); border-radius: 8px; align-items: center; justify-content: center; flex-direction: column; color: var(--text-muted); font-size: 0.7rem; border: 2px dashed var(--card-border); padding: 5px; text-align: center;">
-            <i class="fas fa-link" style="font-size: 1.2rem; margin-bottom: 3px;"></i>
-            <span>URL enregistrée</span>
+               class="project-thumb"
+               data-proxy-src-on-error="${imageSrc}">
+          <div class="no-image-fallback admin-hidden">
+            <i class="fas fa-link"></i>
+            <span>URL enregistree</span>
           </div>
         </div>
       `
           : `
-        <div class="no-image" style="display: inline-flex; width: 100px; height: 70px; background: rgba(0, 175, 167, 0.1); border-radius: 8px; align-items: center; justify-content: center; color: var(--primary-color); font-size: 1.5rem; border: 2px dashed var(--card-border);">
+        <div class="modern-placeholder no-image">
           <i class="fas fa-project-diagram"></i>
         </div>
       `
       }
     </td>
-    <td><strong style="color: var(--primary-color);">${title}</strong></td>
-    <td style="color: var(--text-muted);">${description}...</td>
+    <td><strong class="admin-text-primary">${title}</strong></td>
+    <td class="admin-text-muted">${description}...</td>
     <td>${auteur}</td>
-    <td style="color: var(--text-muted); font-size: 0.85rem;">${technologies}</td>
+    <td>${categorie ? `<span class="badge-categorie">${categorie}</span>` : '<span class="admin-text-muted-sm">&mdash;</span>'}</td>
+    <td class="admin-text-muted-compact">${technologies}</td>
     <td>${date}</td>
-    <td>
-      <div class="table-actions">
-        <button class="btn btn-warning btn-small" onclick='editerProjet(${projet.id})' title="Modifier">
-          <i class="fas fa-edit"></i>
-        </button>
-        <button class="btn btn-danger btn-small" onclick="supprimerProjet(${projet.id}, '${titleJs}')" title="Supprimer">
-          <i class="fas fa-trash"></i>
-        </button>
-      </div>
+    <td class="text-center">
+      <button type="button" class="btn btn-warning btn-sm" data-projet-edit-id="${projet.id}" title="Modifier">
+        <i class="fas fa-edit"></i>
+      </button>
+      <button type="button" class="btn btn-danger btn-sm" data-projet-delete-id="${projet.id}" data-projet-delete-title="${title}" title="Supprimer">
+        <i class="fas fa-trash"></i>
+      </button>
     </td>
   `;
 
   return tr;
 }
 
-// Fonction pour mettre à jour le compteur de projets
 function mettreAJourCompteurProjets(delta) {
   const compteur = document.querySelector(".stats-badge");
   if (compteur) {
@@ -358,4 +572,13 @@ function mettreAJourCompteurProjets(delta) {
   }
 }
 
-console.log("📁 Projets ready");
+window.essayerImageProxy = function (imgElement, originalUrl) {
+  if (
+    window.ImagePreviewHelper &&
+    typeof window.ImagePreviewHelper.tryLoadViaProxyForElement === "function"
+  ) {
+    window.ImagePreviewHelper.tryLoadViaProxyForElement(imgElement, originalUrl, {
+      fallbackSelector: ".no-image-fallback",
+    });
+  }
+};

@@ -1,0 +1,101 @@
+.favori-toggle {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  min-width: 34px;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  background: rgba(7, 10, 20, 0.58);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  z-index: 5;
+  transition:
+    transform 0.18s ease,
+    background 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.favori-toggle:hover {
+  transform: translateY(-1px);
+  border-color: rgba(0, 175, 167, 0.7);
+}
+
+.favori-toggle.is-active {
+  color: #00d2c9;
+  background: rgba(0, 175, 167, 0.2);
+  border-color: rgba(0, 175, 167, 0.8);
+  box-shadow: 0 0 0 1px rgba(0, 175, 167, 0.15);
+}
+
+.favori-toggle[disabled],
+.favori-toggle[aria-busy="true"] {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.favori-toggle-detail {
+  min-width: 0;
+  height: 34px;
+  padding: 0 12px;
+  font-size: 0.9rem;
+}
+
+.favori-toggle-detail span {
+  font-weight: 600;
+}
+
+.favori-detail-action {
+  margin: 0;
+}
+
+.webtv-catalog-thumb .favori-toggle {
+  top: 8px;
+  right: 8px;
+}
+
+.project-meta .favori-toggle-detail,
+.video-meta .favori-toggle-detail {
+  position: static;
+  margin-left: 0;
+}
+
+.modal-detail .action-buttons .favori-toggle-detail {
+  position: static;
+  margin-left: 0;
+  width: 100%;
+  justify-content: center;
+}
+
+.modal-detail .action-buttons {
+  flex-wrap: wrap;
+}
+
+.modal-detail .modal-header-actions .favori-toggle-detail {
+  position: static;
+  margin-left: 0;
+}
+
+@media (min-width: 769px) {
+  .project-meta .favori-toggle-detail,
+  .video-meta .favori-toggle-detail {
+    margin-left: auto;
+  }
+}
+
+@media (min-width: 981px) {
+  .modal-detail .action-buttons {
+    flex-wrap: nowrap;
+  }
+
+  .modal-detail .action-buttons .favori-toggle-detail {
+    width: auto;
+  }
+}

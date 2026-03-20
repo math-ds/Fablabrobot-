@@ -1,0 +1,18 @@
+# Runtime cache files
+stockage/cache/*.cache
+
+# Local temporary dumps
+tmp_*.txt
+
+# Uploaded user files (runtime content)
+public/uploads/**
+!public/uploads/.gitkeep
+
+# Node / Sass tooling
+node_modules/
+package-lock.json
+
+# Generated Sass build output (entrypoint artifacts)
+public/css/scss-build/*.css
+public/css/scss-build/*.map
+!public/css/scss-build/.gitkeep

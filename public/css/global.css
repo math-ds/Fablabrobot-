@@ -1,21 +1,6 @@
-/**
- * ============================================
- * FABLABROBOT - SYSTÈME DE DESIGN GLOBAL
- * Fichier principal qui importe tous les styles de base
- * ============================================
- *
- * Ce fichier doit être importé en premier dans toutes les pages
- * Ordre d'import : Variables → Composants → Utilitaires
- */
-
-/* ==========================================
-   1. VARIABLES CSS GLOBALES
-   ========================================== */
-@import url('_variables.css');
-
-/* ==========================================
-   2. RESET & STYLES DE BASE
-   ========================================== */
+@import url("_variables.css");
+@import url("_components.css");
+@import url("_utilitaires.css");
 
 * {
   margin: 0;
@@ -37,10 +22,16 @@ body {
   color: var(--white);
   background: var(--gradient-primary);
   min-height: 100vh;
-  overflow-x: hidden;
+  min-height: 100dvh;
+  overflow-x: clip;
 }
 
-/* Liens par défaut */
+body,
+.main-wrapper,
+.main-content {
+  min-width: 0;
+}
+
 a {
   color: var(--primary);
   text-decoration: none;
@@ -51,39 +42,45 @@ a:hover {
   color: var(--primary-light);
 }
 
-/* Images responsives par défaut */
 img {
   max-width: 100%;
   height: auto;
   display: block;
 }
 
-/* Suppression des styles par défaut des boutons */
+iframe,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
 button {
   font-family: inherit;
   cursor: pointer;
 }
 
-/* Inputs et formulaires */
 input,
 textarea,
 select {
   font-family: inherit;
+  max-width: 100%;
 }
 
-input:focus,
-textarea:focus,
-select:focus {
+input:focus:not(:focus-visible),
+textarea:focus:not(:focus-visible),
+select:focus:not(:focus-visible) {
   outline: none;
 }
 
-/* Listes */
 ul,
 ol {
   list-style: none;
 }
 
-/* Scrollbar personnalisée (webkit) */
+:where(h1, h2, h3, h4, h5, h6, p, span, small, strong, a, li, td, th, label, button) {
+  overflow-wrap: anywhere;
+}
+
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -102,7 +99,6 @@ ol {
   background: var(--primary);
 }
 
-/* Sélection de texte */
 ::selection {
   background: var(--primary-alpha-30);
   color: var(--white);
@@ -113,22 +109,9 @@ ol {
   color: var(--white);
 }
 
-/* ==========================================
-   3. COMPOSANTS RÉUTILISABLES
-   ========================================== */
-@import url('_components.css');
-
-/* ==========================================
-   4. CLASSES UTILITAIRES
-   ========================================== */
-@import url('_utilitaires.css');
-
-/* ==========================================
-   5. LAYOUT PRINCIPAL
-   ========================================== */
-
 .main-wrapper {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
 }
@@ -138,84 +121,71 @@ ol {
   width: 100%;
   max-width: var(--container-xl);
   margin: 0 auto;
-  padding: var(--spacing-xl) var(--spacing-md);
+  padding: clamp(0.9rem, 2.8vw, 1.15rem) clamp(0.75rem, 3.4vw, 1rem);
 }
 
-/* Layout avec sidebar (admin) */
 .admin-layout {
   display: flex;
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .admin-sidebar {
-  width: var(--sidebar-width);
+  width: 100%;
   background: var(--gradient-primary);
   position: fixed;
   left: 0;
   top: 0;
   height: 100vh;
+  height: 100dvh;
   overflow-y: auto;
   transition: var(--transition-base);
   z-index: var(--z-fixed);
+  transform: translateX(-100%);
 }
 
-.admin-sidebar.collapsed {
-  width: var(--sidebar-collapsed);
+.admin-sidebar.open {
+  transform: translateX(0);
 }
 
 .admin-main {
   flex: 1;
-  margin-left: var(--sidebar-width);
+  margin-left: 0;
   transition: var(--transition-base);
 }
 
-.admin-sidebar.collapsed + .admin-main {
-  margin-left: var(--sidebar-collapsed);
-}
-
-/* ==========================================
-   6. RESPONSIVE - MOBILE FIRST
-   ========================================== */
-
-/* Mobile (par défaut) - 0 à 767px */
-@media (max-width: 767px) {
-  .main-content {
-    padding: var(--spacing-md) var(--spacing-sm);
-  }
-
-  .admin-sidebar {
-    width: 100%;
-    transform: translateX(-100%);
-  }
-
-  .admin-sidebar.open {
-    transform: translateX(0);
-  }
-
-  .admin-main {
-    margin-left: 0;
-  }
-}
-
-/* Tablette - 768px et plus */
 @media (min-width: 768px) {
   .main-content {
     padding: var(--spacing-2xl) var(--spacing-lg);
   }
 
-  /* Grids responsive */
+  .admin-sidebar {
+    width: var(--sidebar-width);
+    transform: translateX(0);
+  }
+
+  .admin-sidebar.collapsed {
+    width: var(--sidebar-collapsed);
+  }
+
+  .admin-main {
+    margin-left: var(--sidebar-width);
+  }
+
+  .admin-sidebar.collapsed + .admin-main {
+    margin-left: var(--sidebar-collapsed);
+  }
+
   .grid-cols-2 {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
-/* Desktop - 1024px et plus */
 @media (min-width: 1024px) {
   .main-content {
     padding: var(--spacing-3xl) var(--spacing-xl);
   }
 
-  /* Grids responsive */
   .grid-cols-3 {
     grid-template-columns: repeat(3, 1fr);
   }
@@ -225,29 +195,22 @@ ol {
   }
 }
 
-/* Grand écran - 1400px et plus */
 @media (min-width: 1400px) {
   .main-content {
     max-width: var(--container-2xl);
   }
 }
 
-/* ==========================================
-   7. ANIMATIONS D'APPARITION AU SCROLL
-   ========================================== */
-
 [data-aos] {
   opacity: 0;
-  transition: opacity var(--transition-slow), transform var(--transition-slow);
+  transition:
+    opacity var(--transition-slow),
+    transform var(--transition-slow);
 }
 
 [data-aos].aos-animate {
   opacity: 1;
 }
-
-/* ==========================================
-   8. ÉTATS DE CHARGEMENT
-   ========================================== */
 
 .skeleton {
   background: linear-gradient(
@@ -276,10 +239,6 @@ ol {
   height: 200px;
 }
 
-/* ==========================================
-   9. MODES D'IMPRESSION
-   ========================================== */
-
 @media print {
   body {
     background: white;
@@ -301,17 +260,17 @@ ol {
   }
 }
 
-/* ==========================================
-   10. ACCESSIBILITÉ
-   ========================================== */
-
-/* Focus visible pour la navigation au clavier */
 *:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
 
-/* Masquer visuellement mais garder pour les lecteurs d'écran */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--primary) !important;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(0, 175, 167, 0.22);
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -324,7 +283,6 @@ ol {
   border: 0;
 }
 
-/* Réduire les animations pour les utilisateurs qui préfèrent */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -332,5 +290,98 @@ ol {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+@media (max-width: 1023px) {
+  html,
+  body {
+    overflow-x: hidden;
+  }
+
+  :is(.main-content, .container, .hero-content, .webtv-detail-layout) {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  :is(h1, .hero-title, .page-title) {
+    line-height: 1.2;
+  }
+}
+
+@media (max-width: 840px) {
+  :is(.main-content, .container) {
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+  }
+
+  :is(.hero-section, .page-hero, .webtv-hero) {
+    margin-bottom: 1rem;
+  }
+
+  :is(.hero-title, .page-title, h1) {
+    font-size: clamp(1.45rem, 6vw, 2.1rem);
+  }
+
+  :is(.hero-subtitle, .page-subtitle) {
+    font-size: clamp(0.95rem, 3.2vw, 1.1rem);
+    line-height: 1.55;
+  }
+
+  :is(.btn, .btn-submit, .btn-cancel-reply, .favori-toggle, .menu-mobile-auth .lien-nav) {
+    min-height: 44px;
+    line-height: 1.25;
+    white-space: normal;
+  }
+
+  :is(input, textarea, select, button) {
+    font-size: 16px;
+  }
+
+  :is(.table-search, .search-bar, .filters, .catalog-filters, .filtres-catalogue) {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  :is(.pagination-nav, .pagination-container) {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  :is(.modal, .contact-modal) {
+    padding: 8px;
+  }
+
+  :is(.modal-content, .contact-modal-content) {
+    width: min(720px, calc(100vw - 16px));
+    max-height: calc(100dvh - 16px);
+    overflow: auto;
+  }
+
+  .menu-mobile-auth .lien-nav.btn-inscription {
+    opacity: 1;
+    color: #ffffff !important;
+  }
+}
+
+@media (max-width: 560px) {
+  :is(.comment-actions, .form-actions, .action-buttons) {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  :is(
+    .comment-actions .btn-submit,
+    .comment-actions .btn-cancel-reply,
+    .form-actions .btn,
+    .action-buttons .btn
+  ) {
+    width: 100%;
+  }
+
+  .webtv-suggestion-card {
+    grid-template-columns: 88px 1fr;
   }
 }

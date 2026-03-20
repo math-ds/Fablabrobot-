@@ -5,7 +5,7 @@ $baseUrl = $GLOBALS['baseUrl'];
 $titrePage = 'Accueil - AJC FABLAB';
 $pageCss = ['index.css'];
 
-include(__DIR__ . '/../parties/header.php');
+include(__DIR__ . '/../parties/public-layout-start.php');
 ?>
 
 <main>
@@ -153,4 +153,4 @@ include(__DIR__ . '/../parties/header.php');
   </section>
 </main>
 
-<?php include(__DIR__ . '/../parties/footer.php'); ?>
+<?php include(__DIR__ . '/../parties/public-layout-end.php'); ?>

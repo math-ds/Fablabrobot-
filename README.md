@@ -157,6 +157,40 @@ Toutes les sections admin disposent d'une interface complète pour :
 
 ## Installation et configuration
 
+## Preprocesseur CSS (Sass) - preuve RNCP
+
+Le projet utilise maintenant Sass (SCSS) pour structurer et maintenir les styles.
+
+### Structure SCSS
+
+- `public/scss/main.scss` : entrypoint public global
+- `public/scss/admin.scss` : entrypoint admin global
+- `public/scss/base/` : base + typographie
+- `public/scss/components/` : composants reutilisables
+- `public/scss/layout/` : header/footer
+- `public/scss/pages/` : styles de pages (ex: webtv, utilisateurs, contact, projets)
+- `public/scss/entries/` : entrypoints qui compilent vers les CSS existants
+
+### Commandes
+
+- `npm install`
+- `npm run scss:watch`
+- `npm run scss:build`
+- `npm run scss:build:min`
+
+### Compilation
+
+- Le watch/build compile vers `public/css/scss-build/` (bundle Sass).
+- Le watch/build compile aussi vers les fichiers CSS utilises par les vues:
+  - `public/css/typographie.css`
+  - `public/css/public-notification.css`
+  - `public/css/webtv.css`
+  - `public/css/utilisateurs.css`
+  - `public/css/contact.css`
+  - `public/css/projets.css`
+
+Regle projet : les modifications se font dans `public/scss/`, pas directement dans les CSS de sortie.
+
 ### Prérequis
 
 Pour faire fonctionner le projet, vous aurez besoin de :

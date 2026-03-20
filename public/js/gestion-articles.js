@@ -1,24 +1,60 @@
-/**
- * Gestion des Articles - Admin
- */
-
-// Variable pour savoir si l'aperçu est déjà initialisé
 let imagePreviewInitialized = false;
+let articleSearchTimer = null;
+
+function estPageAdminArticles() {
+  if (document.querySelector("[data-admin-articles='1']")) {
+    return true;
+  }
+  const params = new URLSearchParams(window.location.search);
+  return params.get("page") === "admin-articles";
+}
+
+function construireUrlAdminArticles(q = "", page = 1) {
+  const url = new URL(window.location.href);
+  url.searchParams.set("page", "admin-articles");
+  url.searchParams.delete("action");
+
+  const recherche = String(q || "").trim();
+  if (recherche === "") {
+    url.searchParams.delete("q");
+  } else {
+    url.searchParams.set("q", recherche);
+  }
+
+  const pageNormalisee = Number.parseInt(String(page ?? 1), 10);
+  if (!Number.isFinite(pageNormalisee) || pageNormalisee <= 1) {
+    url.searchParams.delete("p");
+  } else {
+    url.searchParams.set("p", String(pageNormalisee));
+  }
+
+  return url;
+}
+
+async function chargerArticlesAdmin(q = "", page = 1, options = {}) {
+  const url = construireUrlAdminArticles(q, page);
+  const { pushState = true, scrollToTop = false, preserveLocalState = false } = options;
+  if (window.AdminDashboardAjax && typeof window.AdminDashboardAjax.load === "function") {
+    await window.AdminDashboardAjax.load(url, {
+      pushState,
+      scrollToTop,
+      preserveLocalState,
+      showErrorToast: true,
+    });
+    return;
+  }
+
+  window.location.href = url.toString();
+}
 
 document.addEventListener("DOMContentLoaded", function () {
-  // Configuration du modal et formulaire
   const modal = document.getElementById("modaleArticle");
   const closeBtn = document.querySelector(".close-modal");
   const formulaire = document.getElementById("formulaireArticle");
 
   if (closeBtn) closeBtn.addEventListener("click", fermerModale);
-  if (modal)
-    window.addEventListener(
-      "click",
-      (e) => e.target === modal && fermerModale(),
-    );
+  if (modal) window.addEventListener("click", (e) => e.target === modal && fermerModale());
 
-  // Intercepter la soumission du formulaire pour AJAX
   if (formulaire) {
     formulaire.addEventListener("submit", async function (e) {
       e.preventDefault();
@@ -27,7 +63,6 @@ document.addEventListener("DOMContentLoaded", function () {
       const action = formData.get("action");
       const boutonSoumettre = this.querySelector('button[type="submit"]');
 
-      // Désactiver le bouton pendant l'envoi
       boutonSoumettre.disabled = true;
       boutonSoumettre.textContent = "Envoi en cours...";
 
@@ -38,43 +73,158 @@ document.addEventListener("DOMContentLoaded", function () {
           ToastNotification.succes(data.message);
           fermerModale();
 
-          // Mettre à jour la table dynamiquement
-          mettreAJourTableArticles(action, data.data?.article);
+          if (
+            window.AdminDashboardAjax &&
+            typeof window.AdminDashboardAjax.refreshCurrent === "function"
+          ) {
+            await window.AdminDashboardAjax.refreshCurrent({
+              preserveLocalState: false,
+              scrollToTop: false,
+            });
+          } else {
+            window.location.reload();
+          }
         }
       } catch (error) {
-        ToastNotification.erreur(
-          error.data?.message || "Erreur lors de l'enregistrement",
-        );
+        ToastNotification.erreur(error.data?.message || "Erreur lors de l'enregistrement");
 
-        // Afficher les erreurs de validation si présentes
         if (error.data?.error?.validation) {
           Object.values(error.data.error.validation).forEach((erreur) => {
             ToastNotification.erreur(erreur);
           });
         }
       } finally {
-        // Réactiver le bouton
         boutonSoumettre.disabled = false;
-        boutonSoumettre.textContent =
-          action === "create" ? "Créer" : "Modifier";
+        boutonSoumettre.textContent = action === "create" ? "Créer" : "Modifier";
       }
     });
   }
+
+  document.addEventListener("click", (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target) {
+      return;
+    }
+
+    const openCreateBtn = target.closest("[data-articles-open-create]");
+    if (openCreateBtn) {
+      event.preventDefault();
+      ouvrirModale("create");
+      return;
+    }
+
+    const editBtn = target.closest("[data-article-edit-id]");
+    if (editBtn) {
+      event.preventDefault();
+      const id = Number.parseInt(String(editBtn.getAttribute("data-article-edit-id") || "0"), 10);
+      if (id > 0) {
+        editerArticle(id);
+      }
+      return;
+    }
+
+    const deleteBtn = target.closest("[data-article-delete-id]");
+    if (deleteBtn) {
+      event.preventDefault();
+      const id = Number.parseInt(
+        String(deleteBtn.getAttribute("data-article-delete-id") || "0"),
+        10
+      );
+      const titre = String(deleteBtn.getAttribute("data-article-delete-title") || "cet article");
+      if (id > 0) {
+        supprimerArticle(id, titre);
+      }
+      return;
+    }
+
+    const closeModalBtn = target.closest("[data-article-close-modal]");
+    if (closeModalBtn) {
+      event.preventDefault();
+      fermerModale();
+    }
+  });
+
+  document.addEventListener("change", (event) => {
+    const input = event.target instanceof HTMLInputElement ? event.target : null;
+    if (!input || !input.matches("[data-article-image-file-input]")) {
+      return;
+    }
+    previewLocalImage(input);
+  });
+
+  document.addEventListener(
+    "error",
+    (event) => {
+      const img = event.target instanceof HTMLImageElement ? event.target : null;
+      if (!img) {
+        return;
+      }
+
+      const originalSrc = String(img.getAttribute("data-proxy-src-on-error") || "");
+      if (!originalSrc || img.dataset.proxyTried === "1") {
+        return;
+      }
+
+      img.dataset.proxyTried = "1";
+      if (typeof window.essayerImageProxy === "function") {
+        window.essayerImageProxy(img, originalSrc);
+      }
+    },
+    true
+  );
+});
+
+document.addEventListener("input", (event) => {
+  if (!estPageAdminArticles()) {
+    return;
+  }
+
+  const input = event.target instanceof HTMLInputElement ? event.target : null;
+  if (!input || input.id !== "champRecherche") {
+    return;
+  }
+
+  if (articleSearchTimer) {
+    clearTimeout(articleSearchTimer);
+  }
+
+  articleSearchTimer = window.setTimeout(() => {
+    void chargerArticlesAdmin(input.value, 1, {
+      pushState: true,
+      scrollToTop: false,
+      preserveLocalState: false,
+    });
+  }, 320);
+});
+
+window.addEventListener("popstate", () => {
+  if (!estPageAdminArticles()) {
+    return;
+  }
+
+  const url = new URL(window.location.href);
+  const q = String(url.searchParams.get("q") || "");
+  const p = Number.parseInt(String(url.searchParams.get("p") || "1"), 10);
+
+  void chargerArticlesAdmin(q, Number.isFinite(p) && p > 0 ? p : 1, {
+    pushState: false,
+    scrollToTop: false,
+    preserveLocalState: false,
+  });
 });
 
 function ouvrirModale(action) {
   const modal = document.getElementById("modaleArticle");
   if (!modal) return;
 
-  // Initialiser l'aperçu d'image la première fois que le modal s'ouvre
   if (!imagePreviewInitialized) {
     ImagePreviewHelper.init({
-      inputId: 'image_url',
-      containerId: 'conteneurApercuImage',
-      imgId: 'apercuImage',
-      spinnerId: 'spinnerChargementImage',
-      errorId: 'erreurApercuImage',
-      useProxy: true
+      inputId: "image_url",
+      containerId: "conteneurApercuImage",
+      imgId: "apercuImage",
+      spinnerId: "spinnerChargementImage",
+      errorId: "erreurApercuImage",
+      useProxy: true,
     });
     imagePreviewInitialized = true;
   }
@@ -82,10 +232,7 @@ function ouvrirModale(action) {
   document.getElementById("titreModale").textContent =
     action === "create" ? "Nouvel Article" : "Modifier l'Article";
 
-  // Mettre à jour le texte du bouton
-  const boutonSoumettre = document.querySelector(
-    '#formulaireArticle button[type="submit"]',
-  );
+  const boutonSoumettre = document.querySelector('#formulaireArticle button[type="submit"]');
   if (boutonSoumettre) {
     boutonSoumettre.textContent = action === "create" ? "Créer" : "Modifier";
   }
@@ -94,14 +241,17 @@ function ouvrirModale(action) {
   document.getElementById("formulaireArticle").reset();
   document.getElementById("idArticle").value = "";
 
-  // Réinitialiser l'aperçu d'image avec le helper
   ImagePreviewHelper.reset({
-    containerId: 'conteneurApercuImage',
-    imgId: 'apercuImage',
-    errorId: 'erreurApercuImage'
+    containerId: "conteneurApercuImage",
+    imgId: "apercuImage",
+    errorId: "erreurApercuImage",
   });
 
-  // use class active so CSS centers the modal
+  const localPreviewContainer = document.getElementById("localPreviewArticleContainer");
+  if (localPreviewContainer) {
+    localPreviewContainer.style.display = "none";
+  }
+
   modal.classList.add("active");
 }
 
@@ -114,7 +264,6 @@ function editerArticle(id) {
   ouvrirModale("update");
   document.getElementById("idArticle").value = id;
 
-  // Récupérer les données complètes depuis le JSON
   const donneesArticles = document.getElementById("donneesArticles");
   if (donneesArticles) {
     try {
@@ -124,24 +273,26 @@ function editerArticle(id) {
       if (article) {
         document.getElementById("titre").value = article.titre || "";
         document.getElementById("contenu").value = article.contenu || "";
-        document.getElementById("auteur").value = article.auteur || "";
         document.getElementById("image_url").value = article.image_url || "";
+        const selectCat = document.getElementById("categorieAdmin");
+        if (selectCat) {
+          definirValeurSelectCategorie(selectCat, article.categorie || "");
+        }
 
-        // Déclencher l'aperçu de l'image si une URL existe
         if (article.image_url) {
-          ImagePreviewHelper.preview(article.image_url, {
-            containerId: 'conteneurApercuImage',
-            imgId: 'apercuImage',
-            spinnerId: 'spinnerChargementImage',
-            errorId: 'erreurApercuImage',
-            useProxy: true
+          const imagePreviewSrc = buildArticleImageUrl(article.image_url);
+          ImagePreviewHelper.preview(imagePreviewSrc, {
+            containerId: "conteneurApercuImage",
+            imgId: "apercuImage",
+            spinnerId: "spinnerChargementImage",
+            errorId: "erreurApercuImage",
+            useProxy: true,
           });
         } else {
-          // Réinitialiser l'aperçu si pas d'URL
           ImagePreviewHelper.reset({
-            containerId: 'conteneurApercuImage',
-            imgId: 'apercuImage',
-            errorId: 'erreurApercuImage'
+            containerId: "conteneurApercuImage",
+            imgId: "apercuImage",
+            errorId: "erreurApercuImage",
           });
         }
       }
@@ -165,54 +316,119 @@ async function supprimerArticle(id, titre) {
     if (data.success) {
       ToastNotification.succes(data.message || "Article supprimé avec succès");
 
-      // Supprimer la ligne du tableau avec animation
-      const ligne = document.querySelector(`tr[data-article-id="${id}"]`);
-      if (ligne) {
-        ligne.style.transition = "opacity 0.3s";
-        ligne.style.opacity = "0";
-        setTimeout(() => ligne.remove(), 300);
-      }
-
-      // Mettre à jour le compteur
-      const compteur = document.querySelector(".stats-badge");
-      if (compteur) {
-        const match = compteur.textContent.match(/\d+/);
-        if (match) {
-          const actuel = parseInt(match[0]);
-          compteur.textContent = compteur.textContent.replace(
-            /\d+/,
-            actuel - 1,
-          );
-        }
+      if (
+        window.AdminDashboardAjax &&
+        typeof window.AdminDashboardAjax.refreshAfterDelete === "function"
+      ) {
+        await window.AdminDashboardAjax.refreshAfterDelete({
+          deletedRows: 1,
+          preserveLocalState: false,
+          scrollToTop: false,
+        });
+      } else {
+        window.location.reload();
       }
     }
   } catch (error) {
-    ToastNotification.erreur(
-      error.data?.message || "Erreur lors de la suppression",
-    );
+    ToastNotification.erreur(error.data?.message || "Erreur lors de la suppression");
   }
 }
 
 function rechercherArticles() {
-  const valeur = document.getElementById("champRecherche").value.toLowerCase();
-  document.querySelectorAll("#tableauArticles tbody tr").forEach((ligne) => {
-    ligne.style.display = ligne.textContent.toLowerCase().includes(valeur)
-      ? ""
-      : "none";
-  });
+  if (!estPageAdminArticles()) {
+    return;
+  }
+  const valeur = String(document.getElementById("champRecherche")?.value || "");
+  void chargerArticlesAdmin(valeur, 1);
 }
 
-// Fonction pour mettre à jour la table des articles dynamiquement
+function previewLocalImage(input) {
+  ImagePreviewHelper.previewLocal(input, "localPreviewArticle", "localPreviewArticleContainer");
+}
+
+function buildArticleImageUrl(imageSource) {
+  const value = String(imageSource || "").trim();
+  if (value === "") {
+    return "";
+  }
+
+  if (/^https?:\/\//i.test(value)) {
+    return value;
+  }
+
+  if (/^images\/articles\//i.test(value) || /^images\//i.test(value)) {
+    return value;
+  }
+
+  return `images/articles/${value.replace(/^\/+/, "")}`;
+}
+
+function definirValeurSelectCategorie(selectElement, categorie) {
+  if (!(selectElement instanceof HTMLSelectElement)) {
+    return;
+  }
+
+  const valeur = String(categorie || "").trim();
+  if (valeur === "") {
+    selectElement.value = "";
+    return;
+  }
+
+  const normalisee = valeur
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  let canonique = valeur;
+
+  if (normalisee.includes("lectronique")) {
+    canonique = "Electronique";
+  } else if (normalisee.includes("ecanique") || normalisee.includes("canique")) {
+    canonique = "Mecanique";
+  } else if (normalisee.includes("impression") && normalisee.includes("3d")) {
+    canonique = "Impression 3D";
+  } else if (normalisee.includes("intelligence") && normalisee.includes("artificielle")) {
+    canonique = "Intelligence Artificielle";
+  } else if (normalisee.includes("robot")) {
+    canonique = "Robotique";
+  } else if (normalisee.includes("program")) {
+    canonique = "Programmation";
+  } else if (normalisee.includes("conception")) {
+    canonique = "Conception";
+  } else if (normalisee.includes("autre")) {
+    canonique = "Autre";
+  }
+
+  const options = Array.from(selectElement.options);
+  const optionExistante = options.find(
+    (option) => String(option.value || "").trim().toLowerCase() === canonique.toLowerCase()
+  );
+
+  if (optionExistante) {
+    selectElement.value = optionExistante.value;
+    return;
+  }
+
+  const optionDynamique = selectElement.querySelector("option[data-dynamic-category='1']");
+  if (optionDynamique) {
+    optionDynamique.remove();
+  }
+
+  const option = document.createElement("option");
+  option.value = canonique;
+  option.textContent = canonique;
+  option.setAttribute("data-dynamic-category", "1");
+  selectElement.appendChild(option);
+  selectElement.value = canonique;
+}
+
 function mettreAJourTableArticles(action, article) {
   const tbody = document.querySelector("#tableauArticles tbody");
   const donneesArticles = document.getElementById("donneesArticles");
 
   if (action === "create" && article) {
-    // Ajouter une nouvelle ligne
     const nouvelleLigne = creerLigneArticle(article);
     tbody.insertBefore(nouvelleLigne, tbody.firstChild);
 
-    // Mettre à jour le JSON embarqué
     if (donneesArticles) {
       try {
         const articles = JSON.parse(donneesArticles.textContent);
@@ -223,19 +439,14 @@ function mettreAJourTableArticles(action, article) {
       }
     }
 
-    // Mettre à jour le compteur
     mettreAJourCompteurArticles(1);
   } else if (action === "update" && article) {
-    // Mettre à jour la ligne existante
-    const ligneExistante = document.querySelector(
-      `tr[data-article-id="${article.id}"]`,
-    );
+    const ligneExistante = document.querySelector(`tr[data-article-id="${article.id}"]`);
     if (ligneExistante) {
       const nouvelleLigne = creerLigneArticle(article);
       ligneExistante.replaceWith(nouvelleLigne);
     }
 
-    // Mettre à jour le JSON embarqué
     if (donneesArticles) {
       try {
         const articles = JSON.parse(donneesArticles.textContent);
@@ -251,64 +462,71 @@ function mettreAJourTableArticles(action, article) {
   }
 }
 
-// Fonction pour créer une ligne de tableau pour un article
 function creerLigneArticle(article) {
   const tr = document.createElement("tr");
   tr.setAttribute("data-article-id", article.id);
 
-  const date = new Date(article.created_at).toLocaleDateString("fr-FR");
+  const escapeHtml = (value) =>
+    String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
 
-  const imageSrc = article.image_url
-    ? article.image_url.startsWith("http://") ||
-      article.image_url.startsWith("https://")
-      ? article.image_url
-      : article.image_url
-    : "";
+  const parseDate = new Date(article.created_at || article.updated_at || "");
+  const date = Number.isNaN(parseDate.getTime()) ? "" : parseDate.toLocaleDateString("fr-FR");
+
+  const titreBrut = String(article.titre ?? "");
+  const titre = escapeHtml(titreBrut);
+  const extrait = escapeHtml(String(article.contenu ?? "").substring(0, 80));
+  const auteur = escapeHtml(article.auteur_nom || "N/A");
+  const categorie = escapeHtml(article.categorie || "");
+
+  const imageSource = String(article.image_url || "").trim();
+  const imageSrc = escapeHtml(buildArticleImageUrl(imageSource));
 
   tr.innerHTML = `
-    <td style="text-align: center; padding: 10px;">
+    <td class="table-image-cell">
       ${
-        article.image_url
+        imageSource !== ""
           ? `
-        <div class="image-container" style="display: inline-block; position: relative;">
-          <img src="${imageSrc.replace(/"/g, '"')}"
-               alt="${article.titre.replace(/"/g, '"')}"
-               class="article-image-thumb"
-               style="width: 100px; height: 70px; object-fit: cover; border-radius: 8px; border: 2px solid var(--card-border); display: block;"
-               onerror="essayerImageProxy(this, '${imageSrc.replace(/'/g, "\\'")}')">
-          <div class="no-image-fallback" style="display: none; width: 100px; height: 70px; background: rgba(0, 175, 167, 0.1); border-radius: 8px; align-items: center; justify-content: center; flex-direction: column; color: var(--text-muted); font-size: 0.7rem; border: 2px dashed var(--card-border); padding: 5px; text-align: center;">
-            <i class="fas fa-link" style="font-size: 1.2rem; margin-bottom: 3px;"></i>
-            <span>URL enregistrée</span>
+        <div class="image-container">
+          <img src="${imageSrc}"
+               alt="${titre}"
+               class="article-thumb"
+               data-proxy-src-on-error="${imageSrc}">
+          <div class="no-image-fallback admin-hidden">
+            <i class="fas fa-link"></i>
+            <span>URL enregistree</span>
           </div>
         </div>
       `
           : `
-        <div class="no-image" style="display: inline-flex; width: 100px; height: 70px; background: rgba(0, 175, 167, 0.1); border-radius: 8px; align-items: center; justify-content: center; color: var(--primary-color); font-size: 1.5rem; border: 2px dashed var(--card-border);">
+        <div class="modern-placeholder no-image">
           <i class="fas fa-newspaper"></i>
         </div>
       `
       }
     </td>
-    <td><strong style="color: var(--primary-color);">${article.titre.replace(/</g, "<").replace(/>/g, ">")}</strong></td>
-    <td style="color: var(--text-muted);">${article.contenu.substring(0, 80).replace(/</g, "<").replace(/>/g, ">")}...</td>
-    <td>${article.auteur.replace(/</g, "<").replace(/>/g, ">")}</td>
+    <td><strong class="admin-text-primary">${titre}</strong></td>
+    <td class="admin-text-muted">${extrait}...</td>
+    <td>${auteur}</td>
+    <td>${categorie ? `<span class="badge-categorie">${categorie}</span>` : '<span class="admin-text-muted-sm">&mdash;</span>'}</td>
     <td>${date}</td>
-    <td>
-      <div class="table-actions">
-        <button class="btn btn-warning btn-small" onclick='editerArticle(${article.id})' title="Modifier">
-          <i class="fas fa-edit"></i>
-        </button>
-        <button class="btn btn-danger btn-small" onclick="supprimerArticle(${article.id}, '${article.titre.replace(/'/g, "\\'")}')" title="Supprimer">
-          <i class="fas fa-trash"></i>
-        </button>
-      </div>
+    <td class="text-center">
+      <button type="button" class="btn btn-warning btn-sm" data-article-edit-id="${article.id}" title="Modifier">
+        <i class="fas fa-edit"></i>
+      </button>
+      <button type="button" class="btn btn-danger btn-sm" data-article-delete-id="${article.id}" data-article-delete-title="${titre}" title="Supprimer">
+        <i class="fas fa-trash"></i>
+      </button>
     </td>
   `;
 
   return tr;
 }
 
-// Fonction pour mettre à jour le compteur d'articles
 function mettreAJourCompteurArticles(delta) {
   const compteur = document.querySelector(".stats-badge");
   if (compteur) {
@@ -321,28 +539,13 @@ function mettreAJourCompteurArticles(delta) {
   }
 }
 
-// Fonction pour essayer de charger via proxy (pour les images dans le tableau)
-window.essayerImageProxy = function(imgElement, originalUrl) {
-  const fallback = imgElement.nextElementSibling;
-  if (fallback && fallback.classList.contains("no-image-fallback")) {
-    imgElement.style.display = "none";
-    fallback.style.display = "flex";
+window.essayerImageProxy = function (imgElement, originalUrl) {
+  if (
+    window.ImagePreviewHelper &&
+    typeof window.ImagePreviewHelper.tryLoadViaProxyForElement === "function"
+  ) {
+    window.ImagePreviewHelper.tryLoadViaProxyForElement(imgElement, originalUrl, {
+      fallbackSelector: ".no-image-fallback",
+    });
   }
-
-  const proxyUrl = `proxy-image.php?url=${encodeURIComponent(originalUrl)}`;
-  const proxyImg = new Image();
-
-  proxyImg.onload = function () {
-    imgElement.src = proxyUrl;
-    imgElement.style.display = "block";
-    if (fallback) fallback.style.display = "none";
-  };
-
-  proxyImg.onerror = function () {
-    // Garder le fallback affiché
-  };
-
-  proxyImg.src = proxyUrl;
 };
-
-console.log("📄 Articles ready");

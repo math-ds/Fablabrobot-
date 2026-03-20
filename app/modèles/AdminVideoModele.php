@@ -4,19 +4,31 @@ require_once __DIR__ . '/../../config/database.php';
 class AdminVideoModele
 {
     private PDO $baseDeDonnees;
-    public function __construct() { $this->baseDeDonnees = getDatabase(); }
+
+    public function __construct()
+    {
+        $this->baseDeDonnees = getDatabase();
+    }
 
     public function tousLesElements(): array
     {
-        $sql = "SELECT id, titre, description, categorie, type, fichier, youtube_url, vignette, created_at
-                FROM videos WHERE deleted_at IS NULL ORDER BY created_at DESC";
+        $sql = "SELECT v.id, v.titre, v.description, v.categorie, v.type, v.fichier,
+                       v.youtube_url, v.vignette, v.created_at,
+                       c.id AS auteur_id, c.nom AS auteur_nom, c.photo AS auteur_photo
+                FROM videos v
+                LEFT JOIN users c ON c.id = v.auteur_id AND c.deleted_at IS NULL
+                WHERE v.deleted_at IS NULL ORDER BY v.created_at DESC";
         return $this->baseDeDonnees->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function trouver(int $id): ?array
     {
-        $sql = "SELECT id, titre, description, categorie, type, fichier, youtube_url, vignette, created_at
-                FROM videos WHERE id = :id AND deleted_at IS NULL";
+        $sql = "SELECT v.id, v.titre, v.description, v.categorie, v.type, v.fichier,
+                       v.youtube_url, v.vignette, v.created_at,
+                       c.id AS auteur_id, c.nom AS auteur_nom, c.photo AS auteur_photo
+                FROM videos v
+                LEFT JOIN users c ON c.id = v.auteur_id AND c.deleted_at IS NULL
+                WHERE v.id = :id AND v.deleted_at IS NULL";
         $requete = $this->baseDeDonnees->prepare($sql);
         $requete->execute([':id' => $id]);
         $result = $requete->fetch(PDO::FETCH_ASSOC);
@@ -25,8 +37,8 @@ class AdminVideoModele
 
     public function creer(array $data): int
     {
-        $sql = "INSERT INTO videos (titre, description, categorie, type, fichier, youtube_url, vignette, created_at)
-                VALUES (:titre, :description, :categorie, :type, :fichier, :youtube_url, :vignette, NOW())";
+        $sql = "INSERT INTO videos (titre, description, categorie, type, fichier, youtube_url, vignette, auteur_id, created_at)
+                VALUES (:titre, :description, :categorie, :type, :fichier, :youtube_url, :vignette, :auteur_id, NOW())";
         $requete = $this->baseDeDonnees->prepare($sql);
         $requete->execute([
             ':titre'       => $data['titre'],
@@ -35,7 +47,8 @@ class AdminVideoModele
             ':type'        => $data['type'] ?? 'local',
             ':fichier'     => $data['fichier'] ?? null,
             ':youtube_url' => $data['youtube_url'] ?? null,
-            ':vignette'    => $data['vignette'] ?? null
+            ':vignette'    => $data['vignette'] ?? null,
+            ':auteur_id'   => $data['auteur_id'] ?? null
         ]);
         return (int)$this->baseDeDonnees->lastInsertId();
     }
@@ -59,38 +72,45 @@ class AdminVideoModele
         ]);
     }
 
+    public function trouverIdParNom(string $nom): ?int
+    {
+        $req = $this->baseDeDonnees->prepare(
+            "SELECT id FROM users WHERE nom = :nom AND deleted_at IS NULL LIMIT 1"
+        );
+        $req->execute([':nom' => $nom]);
+        $result = $req->fetchColumn();
+        return $result !== false ? (int)$result : null;
+    }
+
     public function supprimer(int $id): bool
     {
         $requete = $this->baseDeDonnees->prepare("UPDATE videos SET deleted_at = NOW() WHERE id = :id");
         return $requete->execute([':id' => $id]);
     }
 
-    /**
-     * Suppression définitive d'une vidéo (hard delete)
-     * À utiliser avec précaution
-     */
+    
     public function supprimerDefinitivement(int $id): bool
     {
         $requete = $this->baseDeDonnees->prepare("DELETE FROM videos WHERE id = :id AND deleted_at IS NOT NULL");
         return $requete->execute([':id' => $id]);
     }
 
-    /**
-     * Restaurer une vidéo supprimée
-     */
+    
     public function restaurer(int $id): bool
     {
         $requete = $this->baseDeDonnees->prepare("UPDATE videos SET deleted_at = NULL WHERE id = :id AND deleted_at IS NOT NULL");
         return $requete->execute([':id' => $id]);
     }
 
-    /**
-     * Récupérer toutes les vidéos supprimées (dans la corbeille)
-     */
+    
     public function elementsSupprimes(): array
     {
-        $sql = "SELECT id, titre, description, categorie, type, vignette, created_at, deleted_at
-                FROM videos WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC";
+        $sql = "SELECT v.id, v.titre, v.description, v.categorie, v.type, v.vignette,
+                       v.created_at, v.deleted_at,
+                       c.id AS auteur_id, c.nom AS auteur_nom
+                FROM videos v
+                LEFT JOIN users c ON c.id = v.auteur_id
+                WHERE v.deleted_at IS NOT NULL ORDER BY v.deleted_at DESC";
         return $this->baseDeDonnees->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     }
 }

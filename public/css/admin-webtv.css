@@ -1,4 +1,145 @@
-/**
- * Hérite de admin-common.css
- * Utilise .table-container, .data-table, etc.
- */
+.dashboard[data-admin-webtv="1"] .table-header {
+  gap: 10px;
+}
+
+.dashboard[data-admin-webtv="1"] .table-container {
+  --admin-table-thumb-width: 126px;
+  --admin-table-thumb-height: 82px;
+}
+
+.dashboard[data-admin-webtv="1"] #tableauVideos td[data-col="actions"] {
+  white-space: nowrap;
+}
+
+.dashboard[data-admin-webtv="1"] #tableauVideos td[data-col="image"] {
+  width: 1%;
+  min-width: 132px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.dashboard[data-admin-webtv="1"] #tableauVideos td[data-col="image"] .image-container {
+  width: var(--admin-table-thumb-width);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.dashboard[data-admin-webtv="1"] #tableauVideos .video-thumb,
+.dashboard[data-admin-webtv="1"] #tableauVideos .modern-placeholder.no-image {
+  width: var(--admin-table-thumb-width) !important;
+  height: var(--admin-table-thumb-height) !important;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.dashboard[data-admin-webtv="1"] .badge-platform-youtube {
+  color: #ff4d4d;
+  border-color: rgba(255, 77, 77, 0.35);
+  background: rgba(255, 77, 77, 0.08);
+}
+
+@media (max-width: 768px) {
+  .dashboard[data-admin-webtv="1"] .table-container {
+    --admin-table-thumb-width: 104px;
+    --admin-table-thumb-height: 68px;
+  }
+
+  .dashboard[data-admin-webtv="1"] .table-header .stats-badge {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .dashboard[data-admin-webtv="1"] #tableauVideos td[data-col="titre"] strong {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .dashboard[data-admin-webtv="1"] #tableauVideos td[data-col="image"] {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .dashboard[data-admin-webtv="1"] #tableauVideos td[data-col="image"] .image-container {
+    display: flex !important;
+    justify-content: center;
+    align-self: center;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  .dashboard[data-admin-webtv="1"] #tableauVideos td[data-col="actions"] {
+    flex-direction: row !important;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .dashboard[data-admin-webtv="1"] #tableauVideos td[data-col="actions"] .btn {
+    min-width: 40px;
+    min-height: 40px;
+    padding: 8px 10px;
+  }
+}
+
+@media (min-width: 769px) {
+  .dashboard[data-admin-webtv="1"] #tableauVideos td[data-col="date"],
+  .dashboard[data-admin-webtv="1"] #tableauVideos td[data-col="actions"] {
+    text-align: center;
+    vertical-align: middle;
+  }
+
+  .dashboard[data-admin-webtv="1"] #tableauVideos td[data-col="titre"] strong {
+    display: block;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    line-height: 1.35;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1200px) {
+  .dashboard[data-admin-webtv="1"] .table-container {
+    --admin-table-thumb-width: 116px;
+    --admin-table-thumb-height: 76px;
+  }
+
+  .dashboard[data-admin-webtv="1"] #tableauVideos th:nth-child(1),
+  .dashboard[data-admin-webtv="1"] #tableauVideos td:nth-child(1) {
+    width: 13%;
+  }
+  .dashboard[data-admin-webtv="1"] #tableauVideos th:nth-child(2),
+  .dashboard[data-admin-webtv="1"] #tableauVideos td:nth-child(2) {
+    width: 28%;
+  }
+  .dashboard[data-admin-webtv="1"] #tableauVideos th:nth-child(3),
+  .dashboard[data-admin-webtv="1"] #tableauVideos td:nth-child(3) {
+    width: 17%;
+  }
+  .dashboard[data-admin-webtv="1"] #tableauVideos th:nth-child(4),
+  .dashboard[data-admin-webtv="1"] #tableauVideos td:nth-child(4) {
+    width: 12%;
+  }
+  .dashboard[data-admin-webtv="1"] #tableauVideos th:nth-child(5),
+  .dashboard[data-admin-webtv="1"] #tableauVideos td:nth-child(5) {
+    width: 10%;
+  }
+  .dashboard[data-admin-webtv="1"] #tableauVideos th:nth-child(6),
+  .dashboard[data-admin-webtv="1"] #tableauVideos td:nth-child(6) {
+    width: 10%;
+    min-width: 104px;
+  }
+
+  .dashboard[data-admin-webtv="1"] #tableauVideos td[data-col="actions"] .btn {
+    min-width: 34px;
+    min-height: 34px;
+    padding: 6px 7px;
+  }
+}
+
+@media (min-width: 1201px) {
+  .dashboard[data-admin-webtv="1"] .table-container {
+    --admin-table-thumb-width: 132px;
+    --admin-table-thumb-height: 86px;
+  }
+}

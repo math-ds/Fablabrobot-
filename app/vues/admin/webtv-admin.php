@@ -1,88 +1,75 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) session_start();
+$auteurFormulaireVideo = trim((string)($_SESSION['utilisateur_nom'] ?? ''));
+if ($auteurFormulaireVideo === '') {
+    $auteurFormulaireVideo = 'Administrateur';
+}
+
+$adminTitle = 'Gestion WebTV - Admin FABLAB';
+$adminCss = ['admin-webtv.css'];
+
+require __DIR__ . '/../parties/admin-layout-start.php';
 ?>
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gestion WebTV - Admin FABLAB</title>
 
-  <?php require_once __DIR__ . '/../../helpers/CsrfHelper.php'; echo CsrfHelper::obtenirMetaJeton(); ?>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="css/global.css">
-  <link rel="stylesheet" href="css/admin-common.css">
-  <link rel="stylesheet" href="css/admin-webtv.css">
-  <link rel="stylesheet" href="css/toast-notification.css">
-</head>
 
-<body>
-<div class="admin-container">
-  <aside class="sidebar">
-    <div>
-            <div class="sidebar-logo">
-                <a href="?page=admin">
-                    <img src="images/global/ajc_logo_blanc.png" alt="AJC Logo">
-                </a>
-            </div>
-      <?php include __DIR__ . '/../parties/sidebar.php'; ?>
-    </div>
-    <div class="sidebar-footer">
-      <a href="?page=logout" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Déconnexion</a>
-    </div>
-  </aside>
+    <section class="dashboard" data-admin-webtv="1">
+      <h1>Gestion des vidéos YouTube</h1>
 
-  <main class="main-content">
-    <header class="admin-header">
-      <div class="search-bar">
-        <input type="text" id="champRecherche" placeholder="Rechercher une vidéo...">
-      </div>
-    </header>
-
-    <section class="dashboard">
-      <h1><i class="fab fa-youtube"></i> Gestion des vidéos YouTube</h1>
-
-      <?php if (!empty($_SESSION['message'])): ?>
-        <script>
-          document.addEventListener('DOMContentLoaded', function() {
-            ToastNotification.<?= $_SESSION['message_type'] === 'success' ? 'succes' : 'erreur' ?>(
-              <?= json_encode($_SESSION['message'], JSON_UNESCAPED_UNICODE) ?>
-            );
-          });
-        </script>
+      
+    <h2 class="sr-only">Sections principales</h2>
+<?php if (!empty($_SESSION['message'])): ?>
+        <div
+          id="adminFlashData"
+          hidden
+          data-flash-type="<?= htmlspecialchars((string)($_SESSION['message_type'] ?? 'info'), ENT_QUOTES, 'UTF-8') ?>"
+          data-flash-message="<?= htmlspecialchars((string)$_SESSION['message'], ENT_QUOTES, 'UTF-8') ?>"></div>
         <?php unset($_SESSION['message'], $_SESSION['message_type']); ?>
       <?php endif; ?>
 
-      <!-- Cartes de statistiques standardisées -->
       <div class="stats-grid">
         <div class="stat-card">
           <h3>Vidéos YouTube</h3>
-          <div class="value"><?= count($videos ?? []) ?></div>
+          <div class="value"><?= $totalVideos ?? 0 ?></div>
         </div>
       </div>
 
-      <?php if (empty($videos)): ?>
+      <?php if ((int)($totalVideos ?? 0) === 0): ?>
         <div class="empty-state">
           <i class="fab fa-youtube"></i>
           <p>Aucune vidéo YouTube enregistrée pour le moment. Créez-en une pour commencer !</p>
         </div>
       <?php else: ?>
-        <!-- Table vidéos -->
         <div class="table-container">
           <div class="table-header">
             <h3 class="table-title">
               <i class="fab fa-youtube"></i> Vidéos YouTube
             </h3>
             <div class="table-actions">
-              <button class="btn btn-primary" onclick="ouvrirModale('create')">
+              <button type="button" class="btn btn-primary" data-webtv-open-create="1">
                 <i class="fas fa-plus"></i> Nouvelle Vidéo
               </button>
-              <span class="stats-badge"><i class="fab fa-youtube"></i> <?= $totalVideos ?? 0 ?> vidéo(s)</span>
+              <?php
+                $filtrageActif = trim((string)($recherche ?? '')) !== '';
+                $compteurEntete = $filtrageActif ? (int)($totalFiltres ?? 0) : (int)($totalVideos ?? 0);
+                $libelleEntete = $filtrageActif ? 'résultat(s)' : 'video(s)';
+              ?>
+              <span class="stats-badge"><i class="fab fa-youtube"></i> <?= $compteurEntete ?> <?= $libelleEntete ?></span>
             </div>
           </div>
+                    <div class="table-search">
+                        <div class="search-bar">
+                            <input type="text" id="champRecherche" value="<?= htmlspecialchars((string)($recherche ?? ''), ENT_QUOTES, 'UTF-8') ?>" placeholder="Rechercher une vid&eacute;o...">
+                        </div>
+                    </div>
+
 
           <div class="users-table">
+            <?php if ((int)($totalFiltres ?? 0) === 0): ?>
+              <div class="empty-state">
+                <i class="fas fa-search"></i>
+                <h2>Aucun résultat</h2>
+                <p>Aucune vidéo ne correspond à la recherche actuelle.</p>
+              </div>
+            <?php else: ?>
             <table id="tableauVideos">
               <thead>
                 <tr>
@@ -97,26 +84,47 @@ if (session_status() === PHP_SESSION_NONE) session_start();
               <tbody>
               <?php foreach ($videos as $video): ?>
                 <tr data-video-id="<?= $video['id'] ?>">
-                  <td class="table-video-cell" style="text-align: center;">
+                  <td class="table-video-cell admin-text-center" data-label="Miniature" data-col="image">
                     <?php if (!empty($video['vignette'])): ?>
-                      <img src="<?= htmlspecialchars($video['vignette']) ?>" alt="Miniature" class="video-thumb">
+                      <div class="image-container">
+                        <img
+                          src="<?= htmlspecialchars((string)$video['vignette'], ENT_QUOTES, 'UTF-8') ?>"
+                          alt="Miniature"
+                          class="video-thumb"
+                          data-proxy-src-on-error="<?= htmlspecialchars((string)$video['vignette'], ENT_QUOTES, 'UTF-8') ?>">
+                        <div class="no-image-fallback admin-hidden">
+                          <i class="fas fa-link"></i>
+                          <span>Miniature indisponible</span>
+                        </div>
+                      </div>
                     <?php else: ?>
                       <div class="modern-placeholder no-image video-placeholder">
                         <i class="fas fa-video"></i>
                       </div>
                     <?php endif; ?>
                   </td>
-                  <td><strong style="color: var(--primary-color);"><?= htmlspecialchars($video['titre']) ?></strong></td>
-                  <td style="color: var(--text-muted);"><?= htmlspecialchars($video['categorie']) ?></td>
-                  <td>
-                    <span style="color:#ff4d4d;"><i class="fab fa-youtube"></i> YouTube</span>
+                  <td data-label="Titre" data-col="titre"><strong class="admin-text-primary"><?= htmlspecialchars($video['titre']) ?></strong></td>
+                  <td class="admin-text-muted" data-label="Catégorie" data-col="categorie">
+                    <span class="badge-categorie"><?= htmlspecialchars($video['categorie']) ?></span>
                   </td>
-                  <td><?= date('d/m/Y', strtotime($video['created_at'])) ?></td>
-                  <td class="text-center">
-                    <button class="btn btn-warning btn-sm" onclick='ouvrirModale("update", <?= json_encode($video, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)' title="Modifier">
+                  <td data-label="Plateforme" data-col="plateforme">
+                    <span class="badge-categorie badge-platform-youtube"><i class="fab fa-youtube"></i> YouTube</span>
+                  </td>
+                  <td data-label="Date" data-col="date"><?= date('d/m/Y', strtotime($video['created_at'])) ?></td>
+                  <td class="text-center" data-label="Actions" data-col="actions">
+                    <button
+                      type="button"
+                      class="btn btn-warning btn-sm"
+                      data-webtv-edit="<?= htmlspecialchars(json_encode($video, JSON_HEX_APOS | JSON_HEX_QUOT), ENT_QUOTES, 'UTF-8') ?>"
+                      title="Modifier">
                       <i class="fas fa-edit"></i>
                     </button>
-                    <button class="btn btn-danger btn-sm" onclick="supprimerVideo(<?= $video['id'] ?>, '<?= htmlspecialchars($video['titre'], ENT_QUOTES) ?>')" title="Supprimer">
+                    <button
+                      type="button"
+                      class="btn btn-danger btn-sm"
+                      data-webtv-delete-id="<?= (int) $video['id'] ?>"
+                      data-webtv-delete-title="<?= htmlspecialchars($video['titre'], ENT_QUOTES, 'UTF-8') ?>"
+                      title="Supprimer">
                       <i class="fas fa-trash"></i>
                     </button>
                   </td>
@@ -124,23 +132,25 @@ if (session_status() === PHP_SESSION_NONE) session_start();
               <?php endforeach; ?>
               </tbody>
             </table>
+            <?php endif; ?>
           </div>
         </div>
+        <?php if ((int)($totalFiltres ?? 0) > 0): ?>
+          <div class="admin-pagination">
+            <?php require __DIR__ . '/../parties/pagination.php'; ?>
+          </div>
+        <?php endif; ?>
       <?php endif; ?>
 
       <script id="donneesVideos" type="application/json">
 <?= json_encode($videos ?? []) ?>
 </script>
     </section>
-  </main>
-</div>
-
-<!-- Modal vidéo -->
-<div id="modaleVideo" class="modal">
+<div id="modaleVideo" class="modal" role="dialog" aria-modal="true" aria-hidden="true" aria-label="Gestion vidéo">
   <div class="modal-content">
     <div class="modal-header">
       <h2 id="titreModale">Nouvelle vidéo YouTube</h2>
-      <button class="close-modal" onclick="fermerModale()">&times;</button>
+      <button type="button" class="close-modal" data-webtv-close-modal="1" aria-label="Fermer la modale">&times;</button>
     </div>
 
     <form id="formulaireVideo" method="POST" action="?page=admin-webtv">
@@ -159,13 +169,29 @@ if (session_status() === PHP_SESSION_NONE) session_start();
       </div>
 
       <div class="form-group">
+        <label for="auteur_affiche">Auteur</label>
+        <input type="text"
+               id="auteur_affiche"
+               value="<?= htmlspecialchars($auteurFormulaireVideo, ENT_QUOTES, 'UTF-8') ?>"
+               data-current-user="<?= htmlspecialchars($auteurFormulaireVideo, ENT_QUOTES, 'UTF-8') ?>"
+               disabled>
+      </div>
+
+      <div class="form-group">
         <label for="categorie">Catégorie *</label>
-        <input type="text" id="categorie" name="categorie" required>
+        <select id="categorie" name="categorie" required>
+          <option value="">Sélectionner une catégorie</option>
+          <?php foreach (($categoriesVideo ?? []) as $categorieOption): ?>
+            <option value="<?= htmlspecialchars($categorieOption, ENT_QUOTES, 'UTF-8') ?>">
+              <?= htmlspecialchars($categorieOption) ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
       </div>
 
       <div class="form-group">
         <label for="youtube_url">URL YouTube *</label>
-        <input type="url" id="youtube_url" name="youtube_url" placeholder="https://www.youtube.com/watch?v=VIDEO_ID ou https://youtu.be/VIDEO_ID" oninput="traiterUrlYoutube(this.value)" required>
+        <input type="url" id="youtube_url" name="youtube_url" placeholder="https://www.youtube.com/watchv=VIDEO_ID ou https://youtu.be/VIDEO_ID" data-webtv-youtube-input="1" required>
       </div>
 
       <div class="form-group">
@@ -176,18 +202,16 @@ if (session_status() === PHP_SESSION_NONE) session_start();
           <i class="fas fa-youtube"></i>
           <div>
             <strong>La miniature est automatiquement générée depuis YouTube</strong><br>
-            • Collez l'URL YouTube ci-dessus pour voir l'aperçu<br>
-            • L'image provient directement de YouTube (hqdefault.jpg)
+            €¢ Collez l'URL YouTube ci-dessus pour voir l'aperçu<br>
+            €¢ L'image provient directement de YouTube (hqdefault.jpg)
           </div>
         </div>
 
         <div id="conteneurApercuImage" class="image-preview-container">
-          <p class="preview-label">
-            <i class="fas fa-eye"></i> Aperçu de la miniature YouTube :
-          </p>
+          <p class="preview-label"><i class="fas fa-eye"></i> Aperçu de la miniature YouTube :</p>
           <div class="preview-wrapper">
-            <img id="apercuImage" alt="Miniature YouTube" style="display:none; width: 200px; height: 120px; object-fit: cover; border-radius: 8px; border: 2px solid var(--card-border);">
-            <div id="spinnerChargementImage" class="image-loading-spinner" style="display:none;">
+            <img id="apercuImage" class="admin-preview-image" alt="Miniature YouTube">
+            <div id="spinnerChargementImage" class="image-loading-spinner">
               <i class="fas fa-spinner fa-spin"></i>
             </div>
             <div id="placeholderMiniature" class="youtube-placeholder">
@@ -197,7 +221,7 @@ if (session_status() === PHP_SESSION_NONE) session_start();
           </div>
         </div>
 
-        <div id="erreurApercuImage" class="image-preview-error" style="display:none;">
+        <div id="erreurApercuImage" class="image-preview-error">
           <i class="fas fa-exclamation-triangle"></i>
           <div>
             <strong>Impossible de charger la miniature</strong><br>
@@ -209,7 +233,7 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 
 
       <div class="form-actions">
-        <button type="button" class="btn btn-danger" onclick="fermerModale()">
+        <button type="button" class="btn btn-danger" data-webtv-close-modal="1">
           <i class="fas fa-times"></i> Annuler
         </button>
         <button type="submit" class="btn btn-primary">
@@ -220,23 +244,10 @@ if (session_status() === PHP_SESSION_NONE) session_start();
   </div>
 </div>
 
-<script src="js/securite-helper.js"></script>
-<script src="js/ajax-helper.js"></script>
-<script src="js/toast-notification.js"></script>
-<script src="js/recherche-helper.js"></script>
-<script src="js/csrf_manager.js"></script>
-<script src="js/image-preview-helper.js"></script>
-<script src="js/gestion-webtv.js"></script>
 
-<script>
-  // Initialiser la recherche améliorée
-  document.addEventListener('DOMContentLoaded', function() {
-    RechercheHelper.initialiser('champRecherche', '#tableauVideos tbody tr');
-  });
-</script>
+<?php
+$adminScripts = ['js/securite-helper.js', 'js/ajax-helper.js', 'js/toast-notification.js', 'js/recherche-helper.js', 'js/csrf_manager.js', 'js/image-preview-helper.js', 'js/gestion-webtv.js'];
+require __DIR__ . '/../parties/admin-layout-end.php';
+?>
 
-<!-- JavaScript menu mobile -->
-<script src="js/admin-mobile-menu.js"></script>
 
-</body>
-</html>

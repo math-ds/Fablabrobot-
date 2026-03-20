@@ -1,6 +1,50 @@
-/**
- * Gestion WebTV - Admin
- */
+let webtvSearchTimer = null;
+
+function estPageAdminWebtv() {
+  if (document.querySelector("[data-admin-webtv='1']")) {
+    return true;
+  }
+  const params = new URLSearchParams(window.location.search);
+  return params.get("page") === "admin-webtv";
+}
+
+function construireUrlAdminWebtv(q = "", page = 1) {
+  const url = new URL(window.location.href);
+  url.searchParams.set("page", "admin-webtv");
+  url.searchParams.delete("action");
+
+  const recherche = String(q || "").trim();
+  if (recherche === "") {
+    url.searchParams.delete("q");
+  } else {
+    url.searchParams.set("q", recherche);
+  }
+
+  const pageNormalisee = Number.parseInt(String(page ?? 1), 10);
+  if (!Number.isFinite(pageNormalisee) || pageNormalisee <= 1) {
+    url.searchParams.delete("p");
+  } else {
+    url.searchParams.set("p", String(pageNormalisee));
+  }
+
+  return url;
+}
+
+async function chargerWebtvAdmin(q = "", page = 1, options = {}) {
+  const url = construireUrlAdminWebtv(q, page);
+  const { pushState = true, scrollToTop = false, preserveLocalState = false } = options;
+  if (window.AdminDashboardAjax && typeof window.AdminDashboardAjax.load === "function") {
+    await window.AdminDashboardAjax.load(url, {
+      pushState,
+      scrollToTop,
+      preserveLocalState,
+      showErrorToast: true,
+    });
+    return;
+  }
+
+  window.location.href = url.toString();
+}
 
 document.addEventListener("DOMContentLoaded", function () {
   const modal = document.getElementById("modaleVideo");
@@ -8,13 +52,8 @@ document.addEventListener("DOMContentLoaded", function () {
   const formulaire = document.getElementById("formulaireVideo");
 
   if (closeBtn) closeBtn.addEventListener("click", fermerModale);
-  if (modal)
-    window.addEventListener(
-      "click",
-      (e) => e.target === modal && fermerModale(),
-    );
+  if (modal) window.addEventListener("click", (e) => e.target === modal && fermerModale());
 
-  // Intercepter la soumission du formulaire pour AJAX
   if (formulaire) {
     formulaire.addEventListener("submit", async function (e) {
       e.preventDefault();
@@ -23,7 +62,6 @@ document.addEventListener("DOMContentLoaded", function () {
       const action = formData.get("action");
       const boutonSoumettre = this.querySelector('button[type="submit"]');
 
-      // Désactiver le bouton pendant l'envoi
       boutonSoumettre.disabled = true;
       boutonSoumettre.textContent = "Envoi en cours...";
 
@@ -34,28 +72,148 @@ document.addEventListener("DOMContentLoaded", function () {
           ToastNotification.succes(data.message);
           fermerModale();
 
-          // Mettre à jour la table dynamiquement
-          mettreAJourTableVideos(action, data.data?.video);
+          if (
+            window.AdminDashboardAjax &&
+            typeof window.AdminDashboardAjax.refreshCurrent === "function"
+          ) {
+            await window.AdminDashboardAjax.refreshCurrent({
+              preserveLocalState: false,
+              scrollToTop: false,
+            });
+          } else {
+            window.location.reload();
+          }
         }
       } catch (error) {
-        ToastNotification.erreur(
-          error.data?.message || "Erreur lors de l'enregistrement",
-        );
+        ToastNotification.erreur(error.data?.message || "Erreur lors de l'enregistrement");
 
-        // Afficher les erreurs de validation si présentes
         if (error.data?.error?.validation) {
           Object.values(error.data.error.validation).forEach((erreur) => {
             ToastNotification.erreur(erreur);
           });
         }
       } finally {
-        // Réactiver le bouton
         boutonSoumettre.disabled = false;
-        boutonSoumettre.textContent =
-          action === "create" ? "Créer" : "Modifier";
+        boutonSoumettre.textContent = action === "create" ? "Créer" : "Modifier";
       }
     });
   }
+
+  document.addEventListener("click", (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target) {
+      return;
+    }
+
+    const openCreateBtn = target.closest("[data-webtv-open-create]");
+    if (openCreateBtn) {
+      event.preventDefault();
+      ouvrirModale("create");
+      return;
+    }
+
+    const editBtn = target.closest("[data-webtv-edit]");
+    if (editBtn) {
+      event.preventDefault();
+      const payload = String(editBtn.getAttribute("data-webtv-edit") || "");
+      if (payload) {
+        try {
+          ouvrirModale("update", JSON.parse(payload));
+        } catch (_error) {}
+      }
+      return;
+    }
+
+    const deleteBtn = target.closest("[data-webtv-delete-id]");
+    if (deleteBtn) {
+      event.preventDefault();
+      const id = Number.parseInt(String(deleteBtn.getAttribute("data-webtv-delete-id") || "0"), 10);
+      const titre = String(deleteBtn.getAttribute("data-webtv-delete-title") || "cette vidéo");
+      if (id > 0) {
+        supprimerVideo(id, titre);
+      }
+      return;
+    }
+
+    const closeBtn = target.closest("[data-webtv-close-modal]");
+    if (closeBtn) {
+      event.preventDefault();
+      fermerModale();
+    }
+  });
+
+  document.addEventListener("input", (event) => {
+    const input = event.target instanceof HTMLInputElement ? event.target : null;
+    if (!input || !input.matches("[data-webtv-youtube-input]")) {
+      return;
+    }
+    traiterUrlYoutube(input.value);
+  });
+
+  document.addEventListener(
+    "error",
+    (event) => {
+      const img = event.target instanceof HTMLImageElement ? event.target : null;
+      if (!img) {
+        return;
+      }
+
+      const originalSrc = String(img.getAttribute("data-proxy-src-on-error") || "");
+      if (!originalSrc || img.dataset.proxyTried === "1") {
+        return;
+      }
+
+      img.dataset.proxyTried = "1";
+      if (
+        window.ImagePreviewHelper &&
+        typeof window.ImagePreviewHelper.tryLoadViaProxyForElement === "function"
+      ) {
+        window.ImagePreviewHelper.tryLoadViaProxyForElement(img, originalSrc, {
+          fallbackSelector: ".no-image-fallback",
+        });
+      }
+    },
+    true
+  );
+});
+
+document.addEventListener("input", (event) => {
+  if (!estPageAdminWebtv()) {
+    return;
+  }
+
+  const input = event.target instanceof HTMLInputElement ? event.target : null;
+  if (!input || input.id !== "champRecherche") {
+    return;
+  }
+
+  if (webtvSearchTimer) {
+    clearTimeout(webtvSearchTimer);
+  }
+
+  webtvSearchTimer = window.setTimeout(() => {
+    void chargerWebtvAdmin(input.value, 1, {
+      pushState: true,
+      scrollToTop: false,
+      preserveLocalState: false,
+    });
+  }, 320);
+});
+
+window.addEventListener("popstate", () => {
+  if (!estPageAdminWebtv()) {
+    return;
+  }
+
+  const url = new URL(window.location.href);
+  const q = String(url.searchParams.get("q") || "");
+  const p = Number.parseInt(String(url.searchParams.get("p") || "1"), 10);
+
+  void chargerWebtvAdmin(q, Number.isFinite(p) && p > 0 ? p : 1, {
+    pushState: false,
+    scrollToTop: false,
+    preserveLocalState: false,
+  });
 });
 
 function ouvrirModale(action, data = null) {
@@ -63,12 +221,8 @@ function ouvrirModale(action, data = null) {
   if (!modal) return;
 
   const titre = document.getElementById("titreModale");
-  titre.textContent =
-    action === "update"
-      ? "Modifier la vidéo YouTube"
-      : "Nouvelle vidéo YouTube";
+  titre.textContent = action === "update" ? "Modifier la vidéo YouTube" : "Nouvelle vidéo YouTube";
 
-  // Mettre à jour le texte du bouton
   const boutonSoumettre = document.querySelector('#formulaireVideo button[type="submit"]');
   if (boutonSoumettre) {
     boutonSoumettre.textContent = action === "create" ? "Ajouter" : "Modifier";
@@ -78,16 +232,33 @@ function ouvrirModale(action, data = null) {
   document.getElementById("formulaireVideo").reset();
   document.getElementById("idVideo").value = "";
   document.getElementById("youtube_url").value = "";
+  const auteurAfficheInput = document.getElementById("auteur_affiche");
+  if (auteurAfficheInput) {
+    const auteurCourant = auteurAfficheInput.getAttribute("data-current-user") || "";
+    auteurAfficheInput.value = auteurCourant;
+  }
   traiterUrlYoutube("");
 
   if (action === "update" && data) {
     document.getElementById("idVideo").value = data.id || "";
     document.getElementById("titre").value = data.titre || "";
     document.getElementById("description").value = data.description || "";
-    document.getElementById("categorie").value = data.categorie || "";
+    const categorieField = document.getElementById("categorie");
+    if (categorieField) {
+      const categorieValue = String(data.categorie || "");
+      const hasOption = Array.from(categorieField.options || []).some(
+        (option) => option.value === categorieValue
+      );
+      categorieField.value = hasOption ? categorieValue : "Autre";
+    }
     document.getElementById("vignette").value = data.vignette || "";
+    if (auteurAfficheInput) {
+      auteurAfficheInput.value =
+        typeof data.auteur_nom === "string" && data.auteur_nom.trim() !== ""
+          ? data.auteur_nom
+          : auteurAfficheInput.getAttribute("data-current-user") || "";
+    }
 
-    // Déclencher l'aperçu si une URL YouTube existe
     if (data.youtube_url) {
       document.getElementById("youtube_url").value = data.youtube_url;
       traiterUrlYoutube(data.youtube_url);
@@ -103,7 +274,6 @@ function fermerModale() {
 }
 
 function editerVideo(id) {
-  // Récupérer les données complètes depuis le JSON embarqué
   const donneesVideos = document.getElementById("donneesVideos");
   if (donneesVideos) {
     try {
@@ -123,20 +293,20 @@ function traiterUrlYoutube(url) {
   const vignetteInput = document.getElementById("vignette");
   const placeholder = document.getElementById("placeholderMiniature");
   const conteneurApercuImage = document.getElementById("conteneurApercuImage");
+  const erreur = document.getElementById("erreurApercuImage");
 
   if (!url.trim()) {
     vignetteInput.value = "";
     if (conteneurApercuImage) conteneurApercuImage.style.display = "none";
     if (placeholder) placeholder.style.display = "block";
     ImagePreviewHelper.reset({
-      containerId: 'conteneurApercuImage',
-      imgId: 'apercuImage',
-      errorId: 'erreurApercuImage'
+      containerId: "conteneurApercuImage",
+      imgId: "apercuImage",
+      errorId: "erreurApercuImage",
     });
     return;
   }
 
-  // Extraire l'ID YouTube de l'URL
   let videoId = null;
   const patterns = [
     /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
@@ -155,24 +325,22 @@ function traiterUrlYoutube(url) {
     const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
     vignetteInput.value = thumbnailUrl;
 
-    // Masquer le placeholder et afficher l'aperçu avec ImagePreviewHelper
     if (placeholder) placeholder.style.display = "none";
     if (conteneurApercuImage) conteneurApercuImage.style.display = "block";
+    if (erreur) erreur.style.display = "none";
 
     ImagePreviewHelper.preview(thumbnailUrl, {
-      containerId: 'conteneurApercuImage',
-      imgId: 'apercuImage',
-      spinnerId: 'spinnerChargementImage',
-      errorId: 'erreurApercuImage',
-      useProxy: true
+      containerId: "conteneurApercuImage",
+      imgId: "apercuImage",
+      spinnerId: "spinnerChargementImage",
+      errorId: "erreurApercuImage",
+      useProxy: true,
     });
   } else {
     vignetteInput.value = "";
     if (conteneurApercuImage) conteneurApercuImage.style.display = "none";
     if (placeholder) placeholder.style.display = "block";
 
-    // Afficher l'erreur car l'URL YouTube n'est pas valide
-    const erreur = document.getElementById("erreurApercuImage");
     if (erreur) erreur.style.display = "block";
   }
 }
@@ -191,54 +359,39 @@ async function supprimerVideo(id, titre) {
     if (data.success) {
       ToastNotification.succes(data.message || "Vidéo supprimée avec succès");
 
-      // Supprimer la ligne du tableau avec animation
-      const ligne = document.querySelector(`tr[data-video-id="${id}"]`);
-      if (ligne) {
-        ligne.style.transition = "opacity 0.3s";
-        ligne.style.opacity = "0";
-        setTimeout(() => ligne.remove(), 300);
+      if (
+        window.AdminDashboardAjax &&
+        typeof window.AdminDashboardAjax.refreshAfterDelete === "function"
+      ) {
+        await window.AdminDashboardAjax.refreshAfterDelete({
+          deletedRows: 1,
+          preserveLocalState: false,
+          scrollToTop: false,
+        });
+      } else {
+        window.location.reload();
       }
-
-      // Mettre à jour le compteur
-      const compteurs = document.querySelectorAll(".stats-badge, .card-value");
-      compteurs.forEach((compteur) => {
-        const match = compteur.textContent.match(/\d+/);
-        if (match) {
-          const actuel = parseInt(match[0]);
-          compteur.textContent = compteur.textContent.replace(
-            /\d+/,
-            actuel - 1,
-          );
-        }
-      });
     }
   } catch (error) {
-    ToastNotification.erreur(
-      error.data?.message || "Erreur lors de la suppression",
-    );
+    ToastNotification.erreur(error.data?.message || "Erreur lors de la suppression");
   }
 }
-
 function rechercherVideos() {
-  const valeur = document.getElementById("champRecherche").value.toLowerCase();
-  document.querySelectorAll("#tableauVideos tbody tr").forEach((ligne) => {
-    ligne.style.display = ligne.textContent.toLowerCase().includes(valeur)
-      ? ""
-      : "none";
-  });
+  if (!estPageAdminWebtv()) {
+    return;
+  }
+  const valeur = String(document.getElementById("champRecherche")?.value || "");
+  void chargerWebtvAdmin(valeur, 1);
 }
 
-// Fonction pour mettre à jour la table des vidéos dynamiquement
 function mettreAJourTableVideos(action, video) {
   const tbody = document.querySelector("#tableauVideos tbody");
   const donneesVideos = document.getElementById("donneesVideos");
 
   if (action === "create" && video) {
-    // Ajouter une nouvelle ligne
     const nouvelleLigne = creerLigneVideo(video);
     tbody.insertBefore(nouvelleLigne, tbody.firstChild);
 
-    // Mettre à jour le JSON embarqué
     if (donneesVideos) {
       try {
         const videos = JSON.parse(donneesVideos.textContent);
@@ -249,19 +402,14 @@ function mettreAJourTableVideos(action, video) {
       }
     }
 
-    // Mettre à jour le compteur
     mettreAJourCompteurVideos(1);
   } else if (action === "update" && video) {
-    // Mettre à jour la ligne existante
-    const ligneExistante = document.querySelector(
-      `tr[data-video-id="${video.id}"]`,
-    );
+    const ligneExistante = document.querySelector(`tr[data-video-id="${video.id}"]`);
     if (ligneExistante) {
       const nouvelleLigne = creerLigneVideo(video);
       ligneExistante.replaceWith(nouvelleLigne);
     }
 
-    // Mettre à jour le JSON embarqué
     if (donneesVideos) {
       try {
         const videos = JSON.parse(donneesVideos.textContent);
@@ -277,69 +425,78 @@ function mettreAJourTableVideos(action, video) {
   }
 }
 
-// Fonction pour créer une ligne de tableau pour une vidéo
 function creerLigneVideo(video) {
   const tr = document.createElement("tr");
   tr.setAttribute("data-video-id", video.id);
 
-  const date = new Date(video.created_at).toLocaleDateString("fr-FR");
+  const escapeHtml = (value) =>
+    String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
 
-  // Échapper les caractères spéciaux pour HTML
-  const titre = video.titre
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-  const categorie = video.categorie
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-  const vignette = video.vignette
-    ? video.vignette.replace(/"/g, "&quot;").replace(/'/g, "&#39;")
-    : "";
-  const titreJs = video.titre.replace(/'/g, "\\'").replace(/"/g, '\\"');
+  const parseDate = new Date(video.created_at || video.updated_at || "");
+  const date = Number.isNaN(parseDate.getTime()) ? "" : parseDate.toLocaleDateString("fr-FR");
+
+  const titreBrut = String(video.titre ?? "");
+  const titre = escapeHtml(titreBrut);
+  const categorie = escapeHtml(video.categorie || "");
+  const vignette = escapeHtml(video.vignette || "");
+  const payloadEdition = JSON.stringify(video)
+    .replace(/&/g, "\\u0026")
+    .replace(/</g, "\\u003C")
+    .replace(/>/g, "\\u003E")
+    .replace(/'/g, "\\u0027");
 
   tr.innerHTML = `
-    <td style="text-align: center;">
+    <td class="table-video-cell admin-text-center" data-label="Miniature" data-col="image">
       ${
         vignette
           ? `
-        <img src="${vignette}"
-             alt="${titre}"
-             class="video-thumb">
+        <div class="image-container">
+          <img
+            src="${vignette}"
+            alt="Miniature"
+            class="video-thumb"
+            data-proxy-src-on-error="${vignette}">
+          <div class="no-image-fallback admin-hidden">
+            <i class="fas fa-link"></i>
+            <span>Miniature indisponible</span>
+          </div>
+        </div>
       `
           : `
-        <div class="no-image">
+        <div class="modern-placeholder no-image video-placeholder">
           <i class="fas fa-video"></i>
         </div>
       `
       }
     </td>
-    <td><strong style="color: var(--primary-color);">${titre}</strong></td>
-    <td style="color: var(--text-muted);">${categorie}</td>
-    <td>
-      <span style="color:#ff4d4d;"><i class="fab fa-youtube"></i> YouTube</span>
+    <td data-label="Titre" data-col="titre"><strong class="admin-text-primary">${titre}</strong></td>
+    <td class="admin-text-muted" data-label="Categorie" data-col="categorie">
+      <span class="badge-categorie">${categorie}</span>
     </td>
-    <td>${date}</td>
-    <td>
-      <div class="table-actions">
-        <button class="btn btn-warning btn-small" onclick="editerVideo(${video.id})" title="Modifier">
-          <i class="fas fa-edit"></i>
-        </button>
-        <button class="btn btn-danger btn-small" onclick="supprimerVideo(${video.id}, '${titreJs}')" title="Supprimer">
-          <i class="fas fa-trash"></i>
-        </button>
-      </div>
+    <td data-label="Plateforme" data-col="plateforme">
+      <span class="badge-categorie badge-platform-youtube"><i class="fab fa-youtube"></i> YouTube</span>
+    </td>
+    <td data-label="Date" data-col="date">${date}</td>
+    <td class="text-center" data-label="Actions" data-col="actions">
+      <button type="button" class="btn btn-warning btn-sm" data-webtv-edit='${payloadEdition}' title="Modifier">
+        <i class="fas fa-edit"></i>
+      </button>
+      <button type="button" class="btn btn-danger btn-sm" data-webtv-delete-id="${video.id}" data-webtv-delete-title="${titre}" title="Supprimer">
+        <i class="fas fa-trash"></i>
+      </button>
     </td>
   `;
 
   return tr;
 }
 
-// Fonction pour mettre à jour le compteur de vidéos
 function mettreAJourCompteurVideos(delta) {
-  const compteurs = document.querySelectorAll(".stats-badge, .card-value");
+  const compteurs = document.querySelectorAll(".stats-badge, .card-value, .value");
   compteurs.forEach((compteur) => {
     const match = compteur.textContent.match(/\d+/);
     if (match) {
@@ -349,5 +506,3 @@ function mettreAJourCompteurVideos(delta) {
     }
   });
 }
-
-console.log("📹 WebTV prête");

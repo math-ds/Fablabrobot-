@@ -1,0 +1,32 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(
+    --font-family,
+    var(
+      --font-family-base,
+      "Nexa",
+      "Inter",
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      Roboto,
+      sans-serif
+    )
+  );
+  background: linear-gradient(135deg, #191a28 0%, #232e59 100%);
+  color: #ffffff;
+  overflow-x: hidden;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: #00afa7;
+  border-radius: 3px;
+}

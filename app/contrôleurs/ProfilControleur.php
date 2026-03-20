@@ -1,189 +1,236 @@
 <?php
-require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../modèles/ProfilModele.php';
+require_once __DIR__ . '/../helpers/CsrfHelper.php';
+require_once __DIR__ . '/../helpers/GestionnaireCache.php';
+require_once __DIR__ . '/../helpers/AvatarHelper.php';
+require_once __DIR__ . '/../helpers/RoleHelper.php';
+require_once __DIR__ . '/../helpers/ValidationHelper.php';
 
 class ProfilControleur
 {
-    private PDO $db;
+    private ProfilModele $modele;
 
     public function __construct()
     {
-        if (session_status() === PHP_SESSION_NONE) session_start();
-        $this->db = (new Database())->getConnection();
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        $this->modele = new ProfilModele();
     }
 
-    
+    private function invaliderCachesCommentairesVideo(): void
+    {
+        try {
+            $cache = GestionnaireCache::obtenirInstance();
+            $cache->supprimerParPrefixe('video_comments_');
+            $cache->supprimerParPrefixe('liste_videos_');
+            $cache->supprimer('video_categories');
+            $cache->supprimerParPrefixe('article_');
+            $cache->supprimerParPrefixe('liste_articles_');
+            $cache->supprimer('liste_articles');
+            $cache->supprimerParPrefixe('projet_');
+            $cache->supprimer('liste_projets');
+        } catch (Throwable $e) {
+            
+        }
+    }
+
     private function obtenirUtilisateurParId(int $id): ?array
     {
-        $stmt = $this->db->prepare("SELECT id, nom, email, role, photo, date_creation, mot_de_passe FROM connexion WHERE id = ?");
-        $stmt->execute([$id]);
-        $u = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $u ?: null;
+        return $this->modele->obtenirUtilisateurParId($id);
     }
 
-   
+    private function estRequeteAjax(): bool
+    {
+        $requestedWith = strtolower((string)($_SERVER['HTTP_X_REQUESTED_WITH'] ?? ''));
+        if ($requestedWith === 'xmlhttprequest') {
+            return true;
+        }
+
+        return isset($_GET['ajax']) && (string)$_GET['ajax'] === '1';
+    }
+
+    private function repondreJson(array $payload, int $codeHttp = 200): void
+    {
+        http_response_code($codeHttp);
+        header('Content-Type: application/json; charset=UTF-8');
+        echo json_encode($payload, JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    private function terminerAvecMessage(bool $success, string $message, int $codeHttp = 200, array $extra = []): void
+    {
+        if ($this->estRequeteAjax()) {
+            $this->repondreJson(array_merge([
+                'success' => $success,
+                'message' => $message,
+            ], $extra), $codeHttp);
+        }
+
+        $_SESSION['message'] = $message;
+        $_SESSION['message_type'] = $success ? 'success' : 'danger';
+        header('Location: ?page=profil');
+        exit;
+    }
+
+    private function construireAvatar(string $nom, ?string $photo): array
+    {
+        $baseUrl = $GLOBALS['baseUrl'] ?? '/Fablabrobot/public/';
+        return AvatarHelper::construireDonnees($nom, $photo, $baseUrl);
+    }
+
     public function index(): void
     {
-        if (empty($_SESSION['utilisateur_id'])) {
+        $id = (int)($_SESSION['utilisateur_id'] ?? 0);
+        if ($id <= 0) {
             header('Location: ?page=login');
             exit;
         }
 
-        $id = (int) $_SESSION['utilisateur_id'];
         $user = $this->obtenirUtilisateurParId($id);
 
         if (!$user) {
-            echo "<h2>Utilisateur introuvable.</h2>";
-            return;
+            header('Location: ?page=logout');
+            exit;
         }
 
-       
-        $_SESSION['utilisateur_nom']   = $user['nom'];
+        $_SESSION['utilisateur_nom'] = $user['nom'];
         $_SESSION['utilisateur_email'] = $user['email'];
-        $_SESSION['utilisateur_role']  = $user['role'];
+        $_SESSION['utilisateur_role'] = RoleHelper::normaliser($user['role'] ?? '');
         $_SESSION['utilisateur_photo'] = $user['photo'] ?? null;
 
         include __DIR__ . '/../vues/profil/profil.php';
     }
 
-  
     public function mettreAJourPhoto(): void
     {
-        if (empty($_SESSION['utilisateur_id'])) {
-            header('Location: ?page=login');
-            exit;
+        $id = (int)($_SESSION['utilisateur_id'] ?? 0);
+        if ($id <= 0) {
+            $this->terminerAvecMessage(false, 'Session utilisateur invalide.', 401);
         }
 
-        $id = (int) $_SESSION['utilisateur_id'];
         $user = $this->obtenirUtilisateurParId($id);
 
         if (!$user) {
-            $_SESSION['message'] = "Utilisateur introuvable.";
-            header('Location: ?page=profil');
-            exit;
+            $this->terminerAvecMessage(false, 'Utilisateur introuvable.', 404);
         }
 
-       
+        if (!CsrfHelper::validerJeton($_POST['csrf_token'] ?? '')) {
+            $this->terminerAvecMessage(false, 'Token de sécurité invalide. Veuillez réessayer.', 419);
+        }
+
         if (isset($_POST['action']) && $_POST['action'] === 'update-info') {
-            $nom   = trim($_POST['nom'] ?? '');
-            $email = trim($_POST['email'] ?? '');
+            $nom = trim((string)($_POST['nom'] ?? ''));
+            $email = trim((string)($_POST['email'] ?? ''));
 
             if ($nom === '' || $email === '') {
-                $_SESSION['message'] = "⚠️ Tous les champs sont requis.";
-                header('Location: ?page=profil');
-                exit;
+                $this->terminerAvecMessage(false, 'Tous les champs sont requis.', 422);
             }
 
-           
-            $stmt = $this->db->prepare("SELECT id FROM connexion WHERE email = ? AND id != ?");
-            $stmt->execute([$email, $id]);
-            if ($stmt->fetch()) {
-                $_SESSION['message'] = "⚠️ Cet email est déjà utilisé par un autre compte.";
-                header('Location: ?page=profil');
-                exit;
+            if ($this->modele->emailExistePourAutreUtilisateur($email, $id)) {
+                $this->terminerAvecMessage(false, 'Cet email est deja utilise par un autre compte.', 422);
             }
 
-            $stmt = $this->db->prepare("UPDATE connexion SET nom = ?, email = ? WHERE id = ?");
-            $stmt->execute([$nom, $email, $id]);
+            $this->modele->mettreAJourInfos($id, $nom, $email);
 
-            $_SESSION['utilisateur_nom']   = $nom;
+            $_SESSION['utilisateur_nom'] = $nom;
             $_SESSION['utilisateur_email'] = $email;
-            $_SESSION['message'] = "✅ Informations mises à jour avec succès.";
-            header('Location: ?page=profil');
-            exit;
+            $this->invaliderCachesCommentairesVideo();
+
+            $avatar = $this->construireAvatar($nom, $_SESSION['utilisateur_photo'] ?? ($user['photo'] ?? null));
+            $this->terminerAvecMessage(true, 'Informations mises a jour avec succes.', 200, [
+                'user' => [
+                    'nom' => $nom,
+                    'email' => $email,
+                ],
+                'avatar' => $avatar,
+            ]);
         }
 
-        
         if (isset($_POST['action']) && $_POST['action'] === 'update-password') {
-            $old = $_POST['old_password'] ?? '';
-            $new = $_POST['new_password'] ?? '';
-            $confirm = $_POST['confirm_password'] ?? '';
+            $old = (string)($_POST['old_password'] ?? '');
+            $new = (string)($_POST['new_password'] ?? '');
+            $confirm = (string)($_POST['confirm_password'] ?? '');
 
-            if (empty($old) || empty($new) || empty($confirm)) {
-                $_SESSION['message'] = "⚠️ Tous les champs sont requis.";
-                header('Location: ?page=profil');
-                exit;
+            if ($old === '' || $new === '' || $confirm === '') {
+                $this->terminerAvecMessage(false, 'Tous les champs sont requis.', 422);
             }
 
             if ($new !== $confirm) {
-                $_SESSION['message'] = "⚠️ Les mots de passe ne correspondent pas.";
-                header('Location: ?page=profil');
-                exit;
+                $this->terminerAvecMessage(false, 'Les mots de passe ne correspondent pas.', 422);
             }
 
-            
-            if (!password_verify($old, $user['mot_de_passe'])) {
-                $_SESSION['message'] = "❌ Ancien mot de passe incorrect.";
-                header('Location: ?page=profil');
-                exit;
+            if (!preg_match('/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/', $new)) {
+                $this->terminerAvecMessage(false, 'Le mot de passe doit contenir au moins 8 caracteres, une majuscule, une minuscule, un chiffre et un caractere special.', 422);
             }
 
-            
+            if (!password_verify($old, (string)($user['password_hash'] ?? ''))) {
+                $this->terminerAvecMessage(false, 'Ancien mot de passe incorrect.', 422);
+            }
+
             $hash = password_hash($new, PASSWORD_DEFAULT);
-            $stmt = $this->db->prepare("UPDATE connexion SET mot_de_passe = ? WHERE id = ?");
-            $stmt->execute([$hash, $id]);
+            $this->modele->mettreAJourMotDePasse($id, $hash);
 
-            $_SESSION['message'] = "✅ Mot de passe mis à jour avec succès.";
-            header('Location: ?page=profil');
-            exit;
+            $this->terminerAvecMessage(true, 'Mot de passe mis a jour avec succes.');
         }
 
-        
         if (isset($_POST['action']) && $_POST['action'] === 'delete') {
             if (!empty($user['photo'])) {
                 $currentPath = __DIR__ . '/../../public/uploads/profils/' . $user['photo'];
-                if (is_file($currentPath)) unlink($currentPath);
+                if (is_file($currentPath)) {
+                    @unlink($currentPath);
+                }
             }
 
             foreach (glob(__DIR__ . '/../../public/uploads/profils/user_' . $id . '.*') as $old) {
                 @unlink($old);
             }
 
-            $stmt = $this->db->prepare("UPDATE connexion SET photo = NULL WHERE id = ?");
-            $stmt->execute([$id]);
+            $this->modele->supprimerPhoto($id);
 
             $_SESSION['utilisateur_photo'] = null;
-            $_SESSION['message'] = "🗑️ Photo supprimée avec succès.";
-            header('Location: ?page=profil');
-            exit;
+            $this->invaliderCachesCommentairesVideo();
+
+            $avatar = $this->construireAvatar((string)($_SESSION['utilisateur_nom'] ?? $user['nom']), null);
+            $this->terminerAvecMessage(true, 'Photo supprimée avec succès.', 200, [
+                'avatar' => $avatar,
+            ]);
         }
 
-        
-        if (!isset($_FILES['photo']) || $_FILES['photo']['error'] !== UPLOAD_ERR_OK) {
-            $_SESSION['message'] = "⚠️ Erreur lors du téléversement.";
-            header('Location: ?page=profil');
-            exit;
+        if (!isset($_FILES['photo'])) {
+            $this->terminerAvecMessage(false, 'Aucun fichier image recu.', 422);
         }
 
         $file = $_FILES['photo'];
-        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-        $allowed = ['jpg', 'jpeg', 'png', 'gif'];
-
-        if (!in_array($ext, $allowed)) {
-            $_SESSION['message'] = "⚠️ Format d'image non supporté.";
-            header('Location: ?page=profil');
-            exit;
+        $validation = ValidationHelper::validerFichierImage($file, 2048);
+        if (!$validation['valid']) {
+            $this->terminerAvecMessage(false, (string)$validation['error'], 422);
         }
 
-        
         foreach (glob(__DIR__ . '/../../public/uploads/profils/user_' . $id . '.*') as $old) {
             @unlink($old);
         }
 
-        
-        $fileName = 'user_' . $id . '_' . time() . '.' . $ext;
+        $extension = (string)($validation['extension'] ?? 'jpg');
+        $fileName = 'user_' . $id . '_' . time() . '.' . $extension;
         $dest = __DIR__ . '/../../public/uploads/profils/' . $fileName;
 
-        if (!is_dir(dirname($dest))) mkdir(dirname($dest), 0777, true);
+        if (!is_dir(dirname($dest))) {
+            mkdir(dirname($dest), 0755, true);
+        }
 
-        move_uploaded_file($file['tmp_name'], $dest);
+        if (!move_uploaded_file((string)$file['tmp_name'], $dest)) {
+            $this->terminerAvecMessage(false, 'Echec lors de la sauvegarde de la photo.', 500);
+        }
 
-     
-        $stmt = $this->db->prepare("UPDATE connexion SET photo = ? WHERE id = ?");
-        $stmt->execute([$fileName, $id]);
+        $this->modele->mettreAJourPhoto($id, $fileName);
 
         $_SESSION['utilisateur_photo'] = $fileName;
-        $_SESSION['message'] = "✅ Photo mise à jour avec succès !";
-        header('Location: ?page=profil');
-        exit;
+        $this->invaliderCachesCommentairesVideo();
+
+        $avatar = $this->construireAvatar((string)($_SESSION['utilisateur_nom'] ?? $user['nom']), $fileName);
+        $this->terminerAvecMessage(true, 'Photo mise a jour avec succes.', 200, [
+            'avatar' => $avatar,
+        ]);
     }
 }

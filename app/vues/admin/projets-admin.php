@@ -1,60 +1,25 @@
 <?php
+$adminTitle = 'Gestion des Projets - Admin FABLAB';
+$adminCss = ['admin-projets.css'];
 
+require __DIR__ . '/../parties/admin-layout-start.php';
 ?>
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestion des Projets - Admin FABLAB</title>
 
-    <?php require_once __DIR__ . '/../../helpers/CsrfHelper.php'; echo CsrfHelper::obtenirMetaJeton(); ?>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="css/global.css">
-    <link rel="stylesheet" href="css/admin-common.css">
-    <link rel="stylesheet" href="css/admin-projets.css">
-    <link rel="stylesheet" href="css/toast-notification.css">
-</head>
+        <section class="dashboard" data-admin-projets="1">
+            <h1>Gestion des Projets</h1>
 
-<body>
-<div class="admin-container">
-    <aside class="sidebar">
-        <div>
-            <div class="sidebar-logo">
-                <a href="?page=admin">
-                    <img src="images/global/ajc_logo_blanc.png" alt="AJC Logo">
-                </a>
-            </div>
-            <?php include __DIR__ . '/../parties/sidebar.php'; ?>
-        </div>
-        <div class="sidebar-footer">
-            <a href="?page=logout" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Déconnexion</a>
-        </div>
-    </aside>
-
-    <main class="main-content">
-        <header class="admin-header">
-            <div class="search-bar">
-                <input type="text" id="champRecherche" placeholder="Rechercher un projet...">
-            </div>
-        </header>
-
-        <section class="dashboard">
-            <h1><i class="fas fa-project-diagram"></i> Gestion des Projets</h1>
-
-            <?php if (!empty($_SESSION['message'])): ?>
-                <script>
-                    document.addEventListener('DOMContentLoaded', function() {
-                        ToastNotification.<?= $_SESSION['message_type'] === 'success' ? 'succes' : 'erreur' ?>(
-                            <?= json_encode($_SESSION['message'], JSON_UNESCAPED_UNICODE) ?>
-                        );
-                    });
-                </script>
-                <?php unset($_SESSION['message'], $_SESSION['message_type']); ?>
+            
+    <h2 class="sr-only">Sections principales</h2>
+<?php if (!empty($_SESSION['message'])): ?>
+              <div
+                id="adminFlashData"
+                hidden
+                data-flash-type="<?= htmlspecialchars((string)($_SESSION['message_type'] ?? 'info'), ENT_QUOTES, 'UTF-8') ?>"
+                data-flash-message="<?= htmlspecialchars((string)$_SESSION['message'], ENT_QUOTES, 'UTF-8') ?>"></div>
+              <?php unset($_SESSION['message'], $_SESSION['message_type']); ?>
             <?php endif; ?>
 
-            <?php if (empty($projects)): ?>
+            <?php if ((int)($total_projects ?? 0) === 0): ?>
                 <div class="empty-state">
                     <i class="fas fa-inbox"></i>
                     <p>Aucun projet pour le moment. Créez-en un pour commencer !</p>
@@ -65,17 +30,34 @@
                         <h3 class="table-title">
                             <i class="fas fa-project-diagram"></i> Projets
                         </h3>
+                        <?php
+                            $filtrageActif = trim((string)($recherche ?? '')) !== '';
+                            $compteurEntete = $filtrageActif ? (int)($totalFiltres ?? 0) : (int)($total_projects ?? 0);
+                            $libelleEntete = $filtrageActif ? 'résultat(s)' : 'projet(s)';
+                        ?>
                         <div class="table-actions">
-                            <button class="btn btn-primary" onclick="ouvrirModale('create')">
+                            <button type="button" class="btn btn-primary" data-projets-open-create="1">
                                 <i class="fas fa-plus"></i> Nouveau Projet
                             </button>
                             <span class="stats-badge">
-                                <i class="fas fa-folder"></i> <?= $total_projects ?> projet(s)
+                                <i class="fas fa-folder"></i> <?= $compteurEntete ?> <?= $libelleEntete ?>
                             </span>
+                        </div>
+                    </div>
+                    <div class="table-search">
+                        <div class="search-bar">
+                            <input type="text" id="champRecherche" value="<?= htmlspecialchars((string)($recherche ?? ''), ENT_QUOTES, 'UTF-8') ?>" placeholder="Rechercher un projet...">
                         </div>
                     </div>
 
                     <div class="users-table">
+                        <?php if ((int)($totalFiltres ?? 0) === 0): ?>
+                            <div class="empty-state">
+                                <i class="fas fa-search"></i>
+                                <h2>Aucun résultat</h2>
+                                <p>Aucun projet ne correspond a la recherche actuelle.</p>
+                            </div>
+                        <?php else: ?>
                         <table id="tableauProjets">
                         <thead>
                             <tr>
@@ -83,6 +65,7 @@
                                 <th class="col-large">Titre</th>
                                 <th class="col-medium">Description</th>
                                 <th class="col-medium">Auteur</th>
+                                <th class="col-medium">Catégorie</th>
                                 <th class="col-medium">Technologies</th>
                                 <th class="col-date">Date</th>
                                 <th class="col-actions text-center">Actions</th>
@@ -97,41 +80,53 @@
                                 if (str_starts_with($project['image_url'], 'http://') || str_starts_with($project['image_url'], 'https://')) {
                                     $imageSrc = $project['image_url'];
                                 } else {
-                                    $imageSrc = 'images/projets/' . $project['image_url'];
+                                    $imageBrute = ltrim((string)$project['image_url'], '/');
+                                    $imageSrc = str_starts_with($imageBrute, 'images/')
+                                        ? $imageBrute
+                                        : 'images/projets/' . $imageBrute;
                                 }
                             }
                             ?>
                             <tr data-projet-id="<?= $project['id'] ?>">
-                                <td>
+                                <td class="table-image-cell" data-label="Image" data-col="image">
                                     <?php if (!empty($imageSrc)): ?>
-                                        <div class="image-container" style="display: inline-block; position: relative;">
+                                        <div class="image-container">
                                             <img src="<?= htmlspecialchars($imageSrc) ?>"
                                                  alt="<?= htmlspecialchars($project['title']) ?>"
-                                                 class="project-thumb article-thumb"
-                                                 onerror="essayerImageProxy(this, '<?= htmlspecialchars($imageSrc, ENT_QUOTES) ?>')">
-                                            <div class="no-image-fallback" style="display: none; width: 160px; height: 160px; background: rgba(0, 175, 167, 0.1); align-items: center; justify-content: center; flex-direction: column; color: var(--text-muted); font-size: 0.7rem; border: 2px dashed var(--card-border); padding: 5px; text-align: center;">
-                                                <i class="fas fa-link" style="font-size: 1.2rem; margin-bottom: 3px;"></i>
+                                                 class="project-thumb"
+                                                 data-proxy-src-on-error="<?= htmlspecialchars($imageSrc, ENT_QUOTES, 'UTF-8') ?>">
+                                            <div class="no-image-fallback admin-hidden">
+                                                <i class="fas fa-link"></i>
                                                 <span>URL enregistrée</span>
                                             </div>
                                         </div>
                                     <?php else: ?>
-                                        <div class="no-image" style="display: inline-flex; width: 140px; height: 90px; background: rgba(0, 175, 167, 0.1); align-items: center; justify-content: center; color: var(--primary-color); font-size: 1.2rem; border: 2px dashed var(--card-border); transition: all 0.3s ease; border-radius: 10px;"
-                                             onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 15px rgba(0,175,167,0.2)';"
-                                             onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                                        <div class="modern-placeholder no-image">
                                             <i class="fas fa-project-diagram"></i>
                                         </div>
                                     <?php endif; ?>
                                 </td>
-                                <td><strong style="color: var(--primary-color);"><?= htmlspecialchars($project['title']) ?></strong></td>
-                                <td style="color: var(--text-muted);"><?= htmlspecialchars(substr($project['description'], 0, 60)) ?>...</td>
-                                <td><?= htmlspecialchars($project['auteur'] ?? 'N/A') ?></td>
-                                <td style="color: var(--text-muted); font-size: 0.85rem;"><?= htmlspecialchars(substr($project['technologies'] ?? 'N/A', 0, 40)) ?></td>
-                                <td><?= date('d/m/Y', strtotime($project['created_at'])) ?></td>
-                                <td class="text-center">
-                                    <button class="btn btn-warning btn-sm" onclick='editerProjet(<?= $project["id"] ?>)' title="Modifier">
+                                <td data-label="Titre" data-col="titre"><strong class="admin-text-primary"><?= htmlspecialchars($project['title']) ?></strong></td>
+                                <td class="admin-text-muted" data-label="Description" data-col="description">
+                                    <span class="project-description-text"><?= htmlspecialchars(substr($project['description'], 0, 60)) ?>...</span>
+                                </td>
+                                <td data-label="Auteur" data-col="utilisateur"><?= htmlspecialchars($project['auteur_nom'] ?? 'N/A') ?></td>
+                                <td data-label="Catégorie" data-col="categorie">
+                                    <?php if (!empty($project['categorie'])): ?>
+                                        <span class="badge-categorie"><?= htmlspecialchars($project['categorie']) ?></span>
+                                    <?php else: ?>
+                                        <span class="admin-text-muted-sm">-</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="admin-text-muted-compact" data-label="Technologies" data-col="technologies">
+                                    <span class="project-tech-text"><?= htmlspecialchars(substr((string)($project['technologies'] ?? 'N/A'), 0, 40)) ?></span>
+                                </td>
+                                <td data-label="Date" data-col="date"><?= date('d/m/Y', strtotime($project['created_at'])) ?></td>
+                                <td class="text-center" data-label="Actions" data-col="actions">
+                                    <button type="button" class="btn btn-warning btn-sm" data-projet-edit-id="<?= (int) $project['id'] ?>" title="Modifier">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <button class="btn btn-danger btn-sm" onclick="supprimerProjet(<?= $project['id'] ?>, '<?= addslashes($project['title']) ?>')" title="Supprimer">
+                                    <button type="button" class="btn btn-danger btn-sm" data-projet-delete-id="<?= (int) $project['id'] ?>" data-projet-delete-title="<?= htmlspecialchars($project['title'], ENT_QUOTES, 'UTF-8') ?>" title="Supprimer">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </td>
@@ -139,19 +134,21 @@
                         <?php endforeach; ?>
                         </tbody>
                     </table>
+                        <?php endif; ?>
                     </div>
                 </div>
+                <?php if ((int)($totalFiltres ?? 0) > 0): ?>
+                    <div class="admin-pagination">
+                        <?php require __DIR__ . '/../parties/pagination.php'; ?>
+                    </div>
+                <?php endif; ?>
             <?php endif; ?>
         </section>
-    </main>
-</div>
-
-
-<div id="modaleProjet" class="modal">
-  <div class="modal-content" style="max-width: 800px;">
+    <div id="modaleProjet" class="modal" role="dialog" aria-modal="true" aria-hidden="true" aria-label="Gestion projet">
+  <div class="modal-content modal-article">
     <div class="modal-header">
         <h2 id="titreModale">Nouveau Projet</h2>
-        <button class="close-modal" onclick="fermerModale()">&times;</button>
+        <button type="button" class="close-modal" data-projet-close-modal="1" aria-label="Fermer la modale">&times;</button>
     </div>
 
     <form id="formulaireProjet" method="POST" action="?page=admin-projets" enctype="multipart/form-data">
@@ -166,32 +163,46 @@
 
         <div class="form-group">
             <label for="description">Description courte *</label>
-            <textarea id="description" name="description" rows="3" required placeholder="Résumé du projet en quelques lignes..."></textarea>
+            <textarea id="description" name="description" rows="3" required placeholder="Resume du projet en quelques lignes..."></textarea>
         </div>
 
         <div class="form-group">
-            <label for="auteur">Auteur *</label>
-            <input type="text" id="auteur" name="auteur" placeholder="Nom de l'auteur du projet">
+            <label for="projetAdminAuteurAffichage">Auteur</label>
+            <input type="text" id="projetAdminAuteurAffichage" value="<?= htmlspecialchars($_SESSION['utilisateur_nom'] ?? '', ENT_QUOTES, 'UTF-8') ?>" disabled>
         </div>
 
         <div class="form-group">
-            <label for="description_detailed">Description détaillée</label>
-            <textarea id="description_detailed" name="description_detailed" rows="6" placeholder="Description complète du projet..."></textarea>
+            <label for="categorieProjet">Catégorie</label>
+            <select id="categorieProjet" name="categorie" class="form-select">
+                <option value="">- Sélectionner une catégorie -</option>
+                <option value="Robotique">Robotique</option>
+                <option value="Drone / FPV">Drone / FPV</option>
+                <option value="Impression 3D">Impression 3D</option>
+                <option value="Electronique">Electronique</option>
+                <option value="Programmation">Programmation</option>
+                <option value="Mecanique">Mecanique</option>
+                <option value="Autre">Autre</option>
+            </select>
         </div>
 
         <div class="form-group">
-            <label for="technologies">Technologies utilisées</label>
+            <label for="description_detailed">Description detaillee</label>
+            <textarea id="description_detailed" name="description_detailed" rows="6" placeholder="Description complete du projet..."></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="technologies">Technologies utilisees</label>
             <input type="text" id="technologies" name="technologies" placeholder="Ex: Python, Arduino, TensorFlow...">
         </div>
 
         <div class="form-group">
-            <label for="features">Fonctionnalités principales</label>
-            <textarea id="features" name="features" rows="3" placeholder="Séparez par des virgules, ex: Navigation autonome, Détection d'obstacles, Contrôle Bluetooth"></textarea>
+            <label for="features">Fonctionnalites principales</label>
+            <textarea id="features" name="features" rows="3" placeholder="Separez par des virgules, ex: Navigation autonome, Detection d'obstacles, Controle Bluetooth"></textarea>
         </div>
 
         <div class="form-group">
-            <label for="challenges">Défis rencontrés</label>
-            <textarea id="challenges" name="challenges" rows="3" placeholder="Défis techniques et solutions..."></textarea>
+            <label for="challenges">Defis rencontres</label>
+            <textarea id="challenges" name="challenges" rows="3" placeholder="Defis techniques et solutions..."></textarea>
         </div>
 
        
@@ -199,51 +210,52 @@
             <label for="image_url">URL d'image (externe)</label>
             <input type="text" id="image_url" name="image_url" placeholder="https://exemple.com/image.jpg">
             
-            <div style="background: rgba(0, 175, 167, 0.1); border: 1px solid rgba(0, 175, 167, 0.3); padding: 12px; border-radius: 8px; margin-top: 10px; font-size: 0.9rem; color: var(--primary-color);">
+            <div class="info-box">
                 <strong><i class="fas fa-check-circle"></i> Toutes les URLs d'images sont acceptées !</strong><br>
-                • Vous pouvez coller n'importe quelle URL (Google, Discord, Wikipedia, etc.)<br>
-                • L'image s'affichera sur le site public
+                - Vous pouvez coller n'importe quelle URL (Google, Discord, Wikipedia, etc.)<br>
+                - L'image s'affichera sur le site public
             </div>
 
-            <div id="imagePreviewContainer" style="margin-top: 15px; display: none;">
-                <p style="color: var(--primary-color); font-weight: 600; margin-bottom: 10px;">
-                    <i class="fas fa-eye"></i> Aperçu de l'image :
-                </p>
-                <div style="position: relative; display: inline-block;">
-                    <img id="imagePreview" style="max-width: 100%; max-height: 200px; border-radius: 10px; border: 2px solid var(--primary-color);" alt="Aperçu">
-                    <div id="imageLoadingSpinner" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.7); padding: 20px; border-radius: 10px;">
-                        <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: var(--primary-color);"></i>
+            <div id="imagePreviewContainer" class="image-preview-container">
+                <p class="preview-label"><i class="fas fa-eye"></i> Aperçu de l'image :</p>
+                <div class="preview-wrapper">
+                    <img id="imagePreview" alt="Aperçu">
+                    <div id="imageLoadingSpinner" class="image-loading-spinner">
+                        <i class="fas fa-spinner fa-spin"></i>
                     </div>
                 </div>
             </div>
-            
-            <div id="imagePreviewError" style="margin-top: 15px; display: none; background: rgba(255, 107, 107, 0.1); border: 1px solid rgba(255, 107, 107, 0.3); padding: 12px; border-radius: 8px; color: #ff6b6b;">
-                <i class="fas fa-exclamation-triangle"></i> <strong>Impossible de charger l'aperçu</strong><br>
-                Vérifiez que l'URL est correcte.
+
+            <div id="imagePreviewError" class="image-preview-error">
+                <i class="fas fa-exclamation-triangle"></i>
+                <div>
+                    <strong>Impossible de charger l'apercu</strong><br>
+                    Verifiez que l'URL est correcte.
+                </div>
             </div>
         </div>
 
        
         <div class="form-group">
-            <label>OU uploader une image locale (PNG, JPG...)</label>
-            <input type="file" id="imageFile" name="image" accept="image/*" onchange="previewLocalImage(this)">
-            <div style="background: rgba(0, 175, 167, 0.1); border: 1px solid rgba(0, 175, 167, 0.3); padding: 12px; border-radius: 8px; margin-top: 10px; font-size: 0.9rem; color: var(--primary-color);">
+            <label for="imageFile">OU uploader une image locale (PNG, JPG...)</label>
+            <input type="file" id="imageFile" name="image" accept="image/*" data-projet-image-file-input="1">
+            <div class="info-box">
                 <strong><i class="fas fa-upload"></i> Upload local</strong><br>
-                • Accepte PNG, JPG, JPEG, GIF, WebP<br>
-                • Si vous uploadez un fichier, il a priorité sur l'URL ci-dessus<br>
-                • Le fichier sera sauvegardé dans <code>public/images/projets/</code>
+                - Accepte PNG, JPG, JPEG, GIF, WebP<br>
+                - Si vous uploadez un fichier, il a priorite sur l'URL ci-dessus<br>
+                - Le fichier sera sauvegarde dans <code>public/images/projets/</code>
             </div>
 
-            <div id="localPreviewContainer" style="margin-top: 15px; display: none;">
-                <p style="color: var(--primary-color); font-weight: 600; margin-bottom: 10px;">
-                    <i class="fas fa-eye"></i> Aperçu du fichier :
-                </p>
-                <img id="localPreview" style="max-width: 100%; max-height: 200px; border-radius: 10px; border: 2px solid var(--primary-color);" alt="Aperçu local">
+            <div id="localPreviewContainer" class="image-preview-container">
+                <p class="preview-label"><i class="fas fa-eye"></i> Aperçu du fichier :</p>
+                <div class="preview-wrapper">
+                    <img id="localPreview" alt="Aperçu local">
+                </div>
             </div>
         </div>
 
         <div class="form-actions">
-            <button type="button" class="btn btn-danger" onclick="fermerModale()">
+            <button type="button" class="btn btn-danger" data-projet-close-modal="1">
                 <i class="fas fa-times"></i> Annuler
              </button>
             <button type="submit" class="btn btn-primary">
@@ -259,23 +271,9 @@
 <?= json_encode($projects ?? []) ?>
 </script>
 
-<script src="js/securite-helper.js"></script>
-<script src="js/ajax-helper.js"></script>
-<script src="js/toast-notification.js"></script>
-<script src="js/recherche-helper.js"></script>
-<script src="js/csrf_manager.js"></script>
-<script src="js/image-preview-helper.js"></script>
-<script src="js/gestion-projets.js"></script>
 
-<script>
-  // Initialiser la recherche améliorée
-  document.addEventListener('DOMContentLoaded', function() {
-    RechercheHelper.initialiser('champRecherche', '#tableauProjets tbody tr');
-  });
-</script>
+<?php
+$adminScripts = ['js/securite-helper.js', 'js/ajax-helper.js', 'js/toast-notification.js', 'js/recherche-helper.js', 'js/csrf_manager.js', 'js/image-preview-helper.js', 'js/gestion-projets.js'];
+require __DIR__ . '/../parties/admin-layout-end.php';
+?>
 
-<!-- JavaScript menu mobile -->
-<script src="js/admin-mobile-menu.js"></script>
-
-</body>
-</html>

@@ -5,6 +5,8 @@ require_once __DIR__ . '/../helpers/CsrfHelper.php';
 require_once __DIR__ . '/../helpers/ValidationHelper.php';
 require_once __DIR__ . '/../helpers/JsonResponseHelper.php';
 require_once __DIR__ . '/../helpers/GestionnaireCache.php';
+require_once __DIR__ . '/../helpers/Pagination.php';
+require_once __DIR__ . '/../../config/categories.php';
 
 class AdminVideoControleur
 {
@@ -15,11 +17,6 @@ class AdminVideoControleur
     {
         if (session_status() === PHP_SESSION_NONE) session_start();
 
-        if (!isset($_SESSION['utilisateur_role']) || strtolower($_SESSION['utilisateur_role']) !== 'admin') {
-            header('Location: ?page=login');
-            exit;
-        }
-
         $this->modele = new AdminVideoModele();
         $this->cache = GestionnaireCache::obtenirInstance();
         CsrfHelper::init();
@@ -28,12 +25,14 @@ class AdminVideoControleur
     public function gererRequete(?string $action = null): void
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            // Vérification CSRF (POST traditionnel ou AJAX)
+            
             $csrfValid = CsrfHelper::verifierJetonPost() || CsrfHelper::verifierJetonEntete();
 
             if (!$csrfValid) {
                 if (JsonResponseHelper::estAjax()) {
-                    JsonResponseHelper::erreur("Token de sécurité invalide", 403);
+                    JsonResponseHelper::erreurAvecDonnees("Token de sécurité invalide", 403, [
+                        'new_token' => CsrfHelper::genererJeton()
+                    ]);
                 }
                 $_SESSION['message'] = "Token de sécurité invalide.";
                 $_SESSION['message_type'] = "danger";
@@ -45,13 +44,13 @@ class AdminVideoControleur
 
             try {
                 if ($formAction === 'create') {
-                    // Validation des données
+                    
                     $validations = [
                         'titre' => ValidationHelper::validerChaine($_POST['titre'] ?? '', 3, 200, 'Titre'),
                         'description' => ValidationHelper::validerChaine($_POST['description'] ?? '', 5, 1000, 'Description'),
-                        'categorie' => ValidationHelper::validerChaine($_POST['categorie'] ?? '', 2, 100, 'Catégorie'),
                         'youtube_url' => ValidationHelper::validerUrlYoutube($_POST['youtube_url'] ?? '', true)
                     ];
+                    $categorie = CategorieConfig::normaliserVideo((string)($_POST['categorie'] ?? ''));
 
                     foreach ($validations as $field => $result) {
                         if (!$result['valid']) {
@@ -64,22 +63,33 @@ class AdminVideoControleur
                             exit;
                         }
                     }
+                    if ($categorie === null) {
+                        if (JsonResponseHelper::estAjax()) {
+                            JsonResponseHelper::erreurValidation(['categorie' => 'Catégorie invalide.']);
+                        }
+                        $_SESSION['message'] = 'Catégorie invalide.';
+                        $_SESSION['message_type'] = 'danger';
+                        header("Location: ?page=admin-webtv");
+                        exit;
+                    }
 
-                    // Générer automatiquement l'URL de la vignette YouTube
+                    
                     $youtubeId = $validations['youtube_url']['id'];
                     $vignetteUrl = $youtubeId ? "https://img.youtube.com/vi/{$youtubeId}/hqdefault.jpg" : null;
+                    $auteur_id = isset($_SESSION['utilisateur_id']) ? (int)$_SESSION['utilisateur_id'] : null;
 
                     $id = $this->modele->creer([
                         'titre'       => $validations['titre']['value'],
                         'description' => $validations['description']['value'],
-                        'categorie'   => $validations['categorie']['value'],
+                        'categorie'   => $categorie,
                         'type'        => 'youtube',
                         'fichier'     => '',
                         'youtube_url' => $validations['youtube_url']['value'],
-                        'vignette'    => $vignetteUrl
+                        'vignette'    => $vignetteUrl,
+                        'auteur_id'   => $auteur_id
                     ]);
 
-                    // Invalider le cache des vidéos
+                    
                     $this->cache->supprimerParPrefixe('liste_videos_');
                     $this->cache->supprimer('video_categories');
 
@@ -94,13 +104,13 @@ class AdminVideoControleur
                 } elseif ($formAction === 'update') {
                     $id = (int)($_POST['id'] ?? 0);
 
-                    // Validation des données
+                    
                     $validations = [
                         'titre' => ValidationHelper::validerChaine($_POST['titre'] ?? '', 3, 200, 'Titre'),
                         'description' => ValidationHelper::validerChaine($_POST['description'] ?? '', 5, 1000, 'Description'),
-                        'categorie' => ValidationHelper::validerChaine($_POST['categorie'] ?? '', 2, 100, 'Catégorie'),
                         'youtube_url' => ValidationHelper::validerUrlYoutube($_POST['youtube_url'] ?? '', true)
                     ];
+                    $categorie = CategorieConfig::normaliserVideo((string)($_POST['categorie'] ?? ''));
 
                     foreach ($validations as $field => $result) {
                         if (!$result['valid']) {
@@ -113,22 +123,30 @@ class AdminVideoControleur
                             exit;
                         }
                     }
+                    if ($categorie === null) {
+                        if (JsonResponseHelper::estAjax()) {
+                            JsonResponseHelper::erreurValidation(['categorie' => 'Catégorie invalide.']);
+                        }
+                        $_SESSION['message'] = 'Catégorie invalide.';
+                        $_SESSION['message_type'] = 'danger';
+                        header("Location: ?page=admin-webtv");
+                        exit;
+                    }
 
-                    // Générer automatiquement l'URL de la vignette YouTube
+                    
                     $youtubeId = $validations['youtube_url']['id'];
                     $vignetteUrl = $youtubeId ? "https://img.youtube.com/vi/{$youtubeId}/hqdefault.jpg" : null;
-
                     $this->modele->mettreAJour($id, [
                         'titre'       => $validations['titre']['value'],
                         'description' => $validations['description']['value'],
-                        'categorie'   => $validations['categorie']['value'],
+                        'categorie'   => $categorie,
                         'type'        => 'youtube',
                         'fichier'     => '',
                         'youtube_url' => $validations['youtube_url']['value'],
                         'vignette'    => $vignetteUrl
                     ]);
 
-                    // Invalider le cache de cette vidéo et des listes
+                    
                     $this->cache->supprimerParPrefixe('liste_videos_');
                     $this->cache->supprimer('video_categories');
                     $this->cache->supprimer('video_comments_' . $id);
@@ -145,7 +163,7 @@ class AdminVideoControleur
                     $id = (int)($_POST['id'] ?? 0);
                     $this->modele->supprimer($id);
 
-                    // Invalider le cache de cette vidéo et des listes
+                    
                     $this->cache->supprimerParPrefixe('liste_videos_');
                     $this->cache->supprimer('video_categories');
                     $this->cache->supprimer('video_comments_' . $id);
@@ -158,10 +176,11 @@ class AdminVideoControleur
                     $_SESSION['message_type'] = 'success';
                 }
             } catch (Throwable $e) {
+                error_log('AdminVideoControleur::gererRequete - ' . $e->getMessage());
                 if (JsonResponseHelper::estAjax()) {
-                    JsonResponseHelper::erreur($e->getMessage(), 500);
+                    JsonResponseHelper::erreurServeur('Une erreur est survenue lors du traitement de la demande.');
                 }
-                $_SESSION['message'] = "Erreur: " . $e->getMessage();
+                $_SESSION['message'] = "Une erreur est survenue lors du traitement de la demande.";
                 $_SESSION['message_type'] = 'danger';
             }
 
@@ -174,8 +193,40 @@ class AdminVideoControleur
 
     public function index(): void
     {
-        $videos = $this->modele->tousLesElements() ?? [];
-        $totalVideos = count($videos);
+        $videosTous = $this->modele->tousLesElements() ?? [];
+        foreach ($videosTous as &$video) {
+            $categorieNormalisee = CategorieConfig::normaliserVideo((string)($video['categorie'] ?? ''));
+            if ($categorieNormalisee !== null) {
+                $video['categorie'] = $categorieNormalisee;
+            }
+        }
+        unset($video);
+
+        $recherche = trim((string)($_GET['q'] ?? ''));
+        $rechercheNormalisee = mb_strtolower($recherche, 'UTF-8');
+        $videosFiltrees = array_values(array_filter(
+            $videosTous,
+            function (array $video) use ($rechercheNormalisee): bool {
+                if ($rechercheNormalisee === '') {
+                    return true;
+                }
+
+                $index = mb_strtolower(implode(' ', [
+                    (string)($video['titre'] ?? ''),
+                    (string)($video['description'] ?? ''),
+                    (string)($video['categorie'] ?? ''),
+                    (string)($video['auteur_nom'] ?? ''),
+                ]), 'UTF-8');
+
+                return mb_strpos($index, $rechercheNormalisee, 0, 'UTF-8') !== false;
+            }
+        ));
+
+        $categoriesVideo = CategorieConfig::videosDisponibles();
+        $totalVideos = count($videosTous);
+        $totalFiltres = count($videosFiltrees);
+        $pagination = new Pagination($totalFiltres, 10);
+        $videos = array_slice($videosFiltrees, $pagination->offset(), $pagination->limit());
         include __DIR__ . '/../vues/admin/webtv-admin.php';
     }
 }

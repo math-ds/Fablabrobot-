@@ -2,9 +2,9 @@
 
 session_start();
 
-// ✅ PROTECTION SESSION HIJACKING - Vérifier validité de la session
+
 if (isset($_SESSION['utilisateur_id'])) {
-    // Vérifier timeout (30 minutes d'inactivité)
+    
     if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > 1800)) {
         session_unset();
         session_destroy();
@@ -12,24 +12,31 @@ if (isset($_SESSION['utilisateur_id'])) {
         exit;
     }
     $_SESSION['last_activity'] = time();
-
-    // Vérifier user agent (protection basique contre vol de session)
-    if (isset($_SESSION['user_agent']) && $_SESSION['user_agent'] !== ($_SERVER['HTTP_USER_AGENT'] ?? '')) {
-        session_unset();
-        session_destroy();
-        header('Location: ?page=login');
-        exit;
-    }
 }
 
 $GLOBALS['baseUrl'] = '/Fablabrobot/public/';
 
-function load_controller($relativePath) {
-    $full = __DIR__ . '/../' . $relativePath;
-    if (!file_exists($full)) {
-        throw new Exception("Contrôleur introuvable : $relativePath");
+function load_controller_by_basename(string $filename) {
+    $safeFilename = basename($filename);
+    if ($safeFilename !== $filename || !preg_match('/^[A-Za-z0-9_]+\.php$/', $safeFilename)) {
+        throw new Exception('Nom de contrôleur invalide : ' . $filename);
     }
-    require_once $full;
+
+    $fullPath = __DIR__ . '/../app/contrôleurs/' . $safeFilename;
+    if (!file_exists($fullPath)) {
+        throw new Exception('Contrôleur introuvable : ' . $filename);
+    }
+
+    require_once $fullPath;
+}
+
+function render_error_view(int $statusCode, string $errorTitle, string $errorMessage): void {
+    http_response_code($statusCode);
+    $viewPath = __DIR__ . '/../app/vues/erreurs/' . $statusCode . '.php';
+    if (!file_exists($viewPath)) {
+        $viewPath = __DIR__ . '/../app/vues/erreurs/500.php';
+    }
+    require $viewPath;
 }
 
 function new_if_exists(array $classNames) {
@@ -39,42 +46,16 @@ function new_if_exists(array $classNames) {
     return null;
 }
 
-/**
- * Vérifie que l'utilisateur est authentifié et possède le rôle Admin
- * Redirige vers login si non authentifié, affiche erreur 403 si non admin
- */
+
 function verifierAccesAdmin() {
-    if (!isset($_SESSION['utilisateur_id'])) {
-        header('Location: ?page=login');
-        exit;
-    }
-    if (!isset($_SESSION['utilisateur_role']) || strtolower($_SESSION['utilisateur_role']) !== 'admin') {
-        http_response_code(403);
-        echo "<!DOCTYPE html>
-<html lang='fr'>
-<head>
-    <meta charset='UTF-8'>
-    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-    <title>Accès refusé - FABLAB</title>
-    <style>
-        body { font-family: 'Inter', sans-serif; background: #191a28; color: #fff; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-        .error-container { text-align: center; padding: 40px; }
-        .error-container h1 { color: #ff6b6b; font-size: 3rem; margin: 0 0 1rem; }
-        .error-container p { color: #8b92b0; font-size: 1.2rem; margin-bottom: 2rem; }
-        .btn { display: inline-block; padding: 12px 30px; background: #00afa7; color: #fff; text-decoration: none; border-radius: 8px; transition: all 0.3s; }
-        .btn:hover { background: #008f8c; transform: translateY(-2px); }
-    </style>
-</head>
-<body>
-    <div class='error-container'>
-        <h1>⚠️ Accès refusé</h1>
-        <p>Vous devez être administrateur pour accéder à cette page.</p>
-        <a href='?page=accueil' class='btn'>Retour à l'accueil</a>
-    </div>
-</body>
-</html>";
-        exit;
-    }
+    require_once __DIR__ . '/../app/middlewares/RoleMiddleware.php';
+    RoleMiddleware::exigerAdmin();
+}
+
+
+function verifierConnexionUtilisateur() {
+    require_once __DIR__ . '/../app/middlewares/AuthMiddleware.php';
+    AuthMiddleware::exigerConnexion();
 }
 
 $page = $_GET['page'] ?? 'accueil';
@@ -84,32 +65,35 @@ try {
 
 
         case 'accueil':
-            load_controller('app/contrôleurs/AccueilControleur.php');
+            load_controller_by_basename('AccueilControleur.php');
             (new AccueilControleur())->index();
             break;
 
         case 'articles':
-            load_controller('app/contrôleurs/ArticlesControleur.php');
+            load_controller_by_basename('ArticlesControleur.php');
             $ctrl = new_if_exists(['ArticlesControleur','ArticleControleur']);
             if (!$ctrl) throw new Exception("Classe ArticlesControleur (ou ArticleControleur) introuvable. Vérifie le nom exact dans app/contrôleurs/ArticlesControleur.php");
             $ctrl->index();
             break;
 
         case 'article-detail':
-            load_controller('app/contrôleurs/ArticlesControleur.php');
+            load_controller_by_basename('ArticlesControleur.php');
             $ctrl = new_if_exists(['ArticlesControleur','ArticleControleur']);
             if (!$ctrl) throw new Exception("Classe ArticlesControleur (ou ArticleControleur) introuvable. Vérifie le nom exact.");
-            if (!isset($_GET['id'])) { echo "<h2>Article introuvable.</h2>"; break; }
+            if (!isset($_GET['id'])) {
+                render_error_view(404, 'Article introuvable', "L'article demandé est introuvable.");
+                break;
+            }
             $ctrl->detail($_GET['id']);
             break;
                     case 'article_creation':
-            load_controller('app/contrôleurs/ArticlesControleur.php');
+            load_controller_by_basename('ArticlesControleur.php');
             $ctrl = new_if_exists(['ArticlesControleur','ArticleControleur']);
             if (!$ctrl) throw new Exception("Classe ArticlesControleur (ou ArticleControleur) introuvable.");
             $ctrl->creation();
             break;
                     case 'article_enregistrer':
-            load_controller('app/contrôleurs/ArticlesControleur.php');
+            load_controller_by_basename('ArticlesControleur.php');
             $ctrl = new_if_exists(['ArticlesControleur','ArticleControleur']);
             if (!$ctrl) throw new Exception("Classe ArticlesControleur (ou ArticleControleur) introuvable.");
             $ctrl->enregistrer();
@@ -117,38 +101,61 @@ try {
 
 
 
+        case 'actualites':
+            load_controller_by_basename('ActualitesControleur.php');
+            (new ActualitesControleur())->index();
+            break;
+
+        case 'actualite-detail':
+            load_controller_by_basename('ActualitesControleur.php');
+            if (!isset($_GET['id'])) {
+                render_error_view(404, 'Actualité introuvable', "L'actualité demandée est introuvable.");
+                break;
+            }
+            (new ActualitesControleur())->detail((int)$_GET['id']);
+            break;
+
         case 'projets':
-            load_controller('app/contrôleurs/ProjetsControleur.php');
+            load_controller_by_basename('ProjetsControleur.php');
             (new ProjetsControleur())->index();
             break;
 
         case 'projet':
-            load_controller('app/contrôleurs/ProjetControleur.php');
-            if (!isset($_GET['id'])) { echo "<h2>Projet introuvable.</h2>"; break; }
+            load_controller_by_basename('ProjetControleur.php');
+            if (!isset($_GET['id'])) {
+                render_error_view(404, 'Projet introuvable', 'Le projet demandé est introuvable.');
+                break;
+            }
             (new ProjetControleur())->detail($_GET['id']);
             break;
 case 'projet_creation':
-    load_controller('app/contrôleurs/ProjetsControleur.php');
+    load_controller_by_basename('ProjetsControleur.php');
     (new ProjetsControleur())->creation();
     break;
 
 case 'projet_enregistrer':
-    load_controller('app/contrôleurs/ProjetsControleur.php');
+    load_controller_by_basename('ProjetsControleur.php');
     (new ProjetsControleur())->enregistrer();
     break;
 
         case 'webtv':
-            load_controller('app/contrôleurs/VideoControleur.php');
+            load_controller_by_basename('VideoControleur.php');
             (new VideoControleur())->index();
+            break;
+        
+        case 'webtv_enregistrer':
+            load_controller_by_basename('VideoControleur.php');
+            (new VideoControleur())->enregistrer();
             break;
 
         case 'contact':
-            load_controller('app/contrôleurs/ContactControleur.php');
+            load_controller_by_basename('ContactControleur.php');
             (new ContactControleur())->index();
             break;
             
    case 'profil':
-            load_controller('app/contrôleurs/ProfilControleur.php');
+            verifierConnexionUtilisateur();
+            load_controller_by_basename('ProfilControleur.php');
             $ctrl = new ProfilControleur();
             
             if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -158,80 +165,98 @@ case 'projet_enregistrer':
             }
             break;
         
+        case 'favoris':
+            load_controller_by_basename('FavorisControleur.php');
+            (new FavorisControleur())->index();
+            break;
+
+        case 'favoris-toggle':
+            load_controller_by_basename('FavorisControleur.php');
+            (new FavorisControleur())->toggle();
+            break;
+
+        case 'favoris-clear':
+            load_controller_by_basename('FavorisControleur.php');
+            (new FavorisControleur())->supprimerTous();
+            break;
         case 'login':
-            load_controller('app/contrôleurs/AuthentificationControleur.php');
+            load_controller_by_basename('AuthentificationControleur.php');
             (new AuthentificationControleur())->connexion();
             break;
 
         case 'inscription':
-            load_controller('app/contrôleurs/AuthentificationControleur.php');
+            load_controller_by_basename('AuthentificationControleur.php');
             (new AuthentificationControleur())->inscription();
             break;
 
         case 'logout':
-            load_controller('app/contrôleurs/AuthentificationControleur.php');
+            load_controller_by_basename('AuthentificationControleur.php');
             (new AuthentificationControleur())->deconnexion();
             break;
 
         case 'mdp-oublie':
-            load_controller('app/contrôleurs/AuthentificationControleur.php');
+            load_controller_by_basename('AuthentificationControleur.php');
             (new AuthentificationControleur())->mdpOublie();
             break;
 
 
         case 'admin':
             verifierAccesAdmin();
-            load_controller('app/contrôleurs/AdminDashboardControleur.php');
+            load_controller_by_basename('AdminDashboardControleur.php');
             (new AdminDashboardControleur())->index();
             break;
 
         case 'admin-projets':
             verifierAccesAdmin();
-            load_controller('app/contrôleurs/AdminProjetsControleur.php');
+            load_controller_by_basename('AdminProjetsControleur.php');
             (new AdminProjetsControleur())->gererRequete($_POST['action'] ?? null);
             break;
 
         case 'admin-articles':
             verifierAccesAdmin();
-            load_controller('app/contrôleurs/AdminArticlesControleur.php');
+            load_controller_by_basename('AdminArticlesControleur.php');
             (new AdminArticlesControleur())->gererRequete($_POST['action'] ?? null);
+            break;
+
+        case 'admin-actualites':
+            verifierAccesAdmin();
+            load_controller_by_basename('AdminActualitesControleur.php');
+            (new AdminActualitesControleur())->gererRequete($_POST['action'] ?? null);
             break;
 
         case 'admin-webtv':
             verifierAccesAdmin();
-            load_controller('app/contrôleurs/AdminVideoControleur.php');
+            load_controller_by_basename('AdminVideoControleur.php');
             (new AdminVideoControleur())->gererRequete($_POST['action'] ?? null);
             break;
 
         case 'admin-comments':
             verifierAccesAdmin();
-            load_controller('app/contrôleurs/AdminCommentairesControleur.php');
+            load_controller_by_basename('AdminCommentairesControleur.php');
             (new AdminCommentairesControleur())->gererRequete($_POST['action'] ?? null);
             break;
 
 
         case 'admin-utilisateurs':
             verifierAccesAdmin();
-            load_controller('app/contrôleurs/AdminUtilisateursControleur.php');
+            load_controller_by_basename('AdminUtilisateursControleur.php');
             (new AdminUtilisateursControleur())->gererRequete($_POST['action'] ?? null);
             break;
 
 
         case 'utilisateurs-admin':
-            verifierAccesAdmin();
-            load_controller('app/contrôleurs/AdminUtilisateursControleur.php');
-            (new AdminUtilisateursControleur())->gererRequete($_POST['action'] ?? null);
-            break;
+            header('Location: ?page=admin-utilisateurs');
+            exit;
 
         case 'admin-contact':
             verifierAccesAdmin();
-            load_controller('app/contrôleurs/AdminContactControleur.php');
+            load_controller_by_basename('AdminContactControleur.php');
             (new AdminContactControleur())->gererRequete($_POST['action'] ?? null);
             break;
 
         case 'admin-corbeille':
             verifierAccesAdmin();
-            load_controller('app/contrôleurs/AdminCorbeilleControleur.php');
+            load_controller_by_basename('AdminCorbeilleControleur.php');
             $ctrl = new AdminCorbeilleControleur();
             $action = $_GET['action'] ?? null;
             if ($action === 'restaurer') {
@@ -249,7 +274,7 @@ case 'projet_enregistrer':
 
         case 'admin-cache':
             verifierAccesAdmin();
-            load_controller('app/contrôleurs/AdminCacheControleur.php');
+            load_controller_by_basename('AdminCacheControleur.php');
             $ctrl = new AdminCacheControleur();
             if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $ctrl->gererAction();
@@ -260,15 +285,22 @@ case 'projet_enregistrer':
 
 
         default:
-            load_controller('app/contrôleurs/AccueilControleur.php');
-            (new AccueilControleur())->index();
+            render_error_view(
+                404,
+                'Page introuvable',
+                'La page demandée est introuvable.'
+            );
             break;
     }
 
 } catch (Throwable $e) {
-    http_response_code(500);
-    echo "<pre style='padding:16px;background:#111;color:#f55;border:1px solid #400;border-radius:8px;'>
-Erreur fatale dans le routeur :
-" . htmlspecialchars($e->getMessage()) . "
-</pre>";
+    error_log('Router error: ' . $e->getMessage());
+    error_log($e->getTraceAsString());
+    render_error_view(
+        500,
+        'Erreur serveur',
+        'Une erreur interne est survenue. Veuillez réessayer plus tard.'
+    );
 }
+
+

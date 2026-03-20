@@ -1,9 +1,3 @@
-/* Fichier vidé - Toutes les règles sont maintenant dans admin-common.css */
-
-/* ==========================================
-   APERÇU D'IMAGE DANS LES MODALES ARTICLES
-   ========================================== */
-
 #conteneurApercuImage {
   display: none;
   margin-top: 15px;
@@ -15,12 +9,17 @@
   margin-bottom: 10px;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
 }
 
 .preview-wrapper {
   position: relative;
-  display: inline-block;
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 #apercuImage {
@@ -30,6 +29,8 @@
   border: 2px solid #00afa7;
   display: none;
   transition: all 0.3s ease;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 #apercuImage:hover {
@@ -66,31 +67,263 @@
   margin-right: 8px;
 }
 
-/* ==========================================
-   CENTRAGE DES IMAGES DANS LES TABLEAUX ARTICLES
-   ========================================== */
-
-.table-image-cell {
-  text-align: center !important;
+.dashboard[data-admin-articles="1"] .table-header {
+  gap: 10px;
 }
 
-.table-image-cell .image-container,
-.table-image-cell .modern-placeholder,
-.table-image-cell .no-image {
-  display: block;
-  margin: 0 auto;
+.dashboard[data-admin-articles="1"] .table-container {
+  --admin-table-thumb-width: 126px;
+  --admin-table-thumb-height: 82px;
+}
+
+.dashboard[data-admin-articles="1"] #tableauArticles td[data-col="actions"] {
+  white-space: nowrap;
+}
+
+.dashboard[data-admin-articles="1"] #tableauArticles td[data-col="categorie"] {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.dashboard[data-admin-articles="1"] #tableauArticles td[data-col="categorie"] .badge-categorie {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 12px;
+  min-height: 30px;
+  min-width: 108px;
+  max-width: 100%;
+  font-size: 0.8rem;
+  line-height: 1.2;
+  white-space: nowrap;
   text-align: center;
 }
 
-/* ==========================================
-   ANIMATIONS POUR LES IMAGES DANS LES TABLEAUX
-   ========================================== */
-
-.article-thumb {
-  transition: all 0.3s ease;
+.dashboard[data-admin-articles="1"] #tableauArticles td[data-col="image"] {
+  width: 1%;
+  min-width: 132px;
+  text-align: center;
+  vertical-align: middle;
 }
 
-.article-thumb:hover {
-  transform: scale(1.05);
-  box-shadow: 0 4px 15px rgba(0, 175, 167, 0.3);
+.dashboard[data-admin-articles="1"] #tableauArticles td[data-col="image"] .image-container {
+  width: var(--admin-table-thumb-width);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.dashboard[data-admin-articles="1"] #tableauArticles .article-thumb,
+.dashboard[data-admin-articles="1"] #tableauArticles .modern-placeholder.no-image,
+.dashboard[data-admin-articles="1"] #tableauArticles .no-image-fallback {
+  width: var(--admin-table-thumb-width) !important;
+  height: var(--admin-table-thumb-height) !important;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+@media (max-width: 768px) {
+  .dashboard[data-admin-articles="1"] .table-container {
+    --admin-table-thumb-width: 104px;
+    --admin-table-thumb-height: 68px;
+  }
+
+  .dashboard[data-admin-articles="1"] .table-header .stats-badge {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .dashboard[data-admin-articles="1"] #tableauArticles td[data-col="titre"] strong,
+  .dashboard[data-admin-articles="1"] #tableauArticles td[data-col="description"] {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .dashboard[data-admin-articles="1"] #tableauArticles td[data-col="image"] {
+    align-items: center !important;
+    text-align: center !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .dashboard[data-admin-articles="1"] #tableauArticles td[data-col="image"] .image-container {
+    display: flex !important;
+    justify-content: center;
+    align-self: center;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  .dashboard[data-admin-articles="1"] #tableauArticles .article-thumb,
+  .dashboard[data-admin-articles="1"] #tableauArticles .modern-placeholder.no-image,
+  .dashboard[data-admin-articles="1"] #tableauArticles .no-image-fallback {
+    align-self: center;
+  }
+
+  .dashboard[data-admin-articles="1"] #tableauArticles td[data-col="actions"] {
+    flex-direction: row !important;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .dashboard[data-admin-articles="1"] #tableauArticles td[data-col="actions"] .btn {
+    min-width: 40px;
+    min-height: 40px;
+    padding: 8px 10px;
+  }
+}
+
+@media (min-width: 769px) {
+  .dashboard[data-admin-articles="1"] .table-container {
+    --admin-table-thumb-width: 104px;
+    --admin-table-thumb-height: 70px;
+  }
+
+  .dashboard[data-admin-articles="1"] #tableauArticles {
+    table-layout: fixed;
+    width: 100%;
+  }
+
+  .dashboard[data-admin-articles="1"] #tableauArticles th,
+  .dashboard[data-admin-articles="1"] #tableauArticles td {
+    padding: 10px 8px;
+  }
+
+  .dashboard[data-admin-articles="1"] #tableauArticles th,
+  .dashboard[data-admin-articles="1"] #tableauArticles td {
+    min-width: 0;
+  }
+
+  .dashboard[data-admin-articles="1"] #tableauArticles th:nth-child(1),
+  .dashboard[data-admin-articles="1"] #tableauArticles td:nth-child(1) {
+    width: 11%;
+    min-width: 90px;
+  }
+  .dashboard[data-admin-articles="1"] #tableauArticles th:nth-child(2),
+  .dashboard[data-admin-articles="1"] #tableauArticles td:nth-child(2) {
+    width: 24%;
+  }
+  .dashboard[data-admin-articles="1"] #tableauArticles th:nth-child(3),
+  .dashboard[data-admin-articles="1"] #tableauArticles td:nth-child(3) {
+    width: 22%;
+  }
+  .dashboard[data-admin-articles="1"] #tableauArticles th:nth-child(4),
+  .dashboard[data-admin-articles="1"] #tableauArticles td:nth-child(4) {
+    width: 12%;
+  }
+  .dashboard[data-admin-articles="1"] #tableauArticles th:nth-child(5),
+  .dashboard[data-admin-articles="1"] #tableauArticles td:nth-child(5) {
+    width: 12%;
+  }
+  .dashboard[data-admin-articles="1"] #tableauArticles th:nth-child(6),
+  .dashboard[data-admin-articles="1"] #tableauArticles td:nth-child(6) {
+    width: 9%;
+    min-width: 76px;
+  }
+  .dashboard[data-admin-articles="1"] #tableauArticles th:nth-child(7),
+  .dashboard[data-admin-articles="1"] #tableauArticles td:nth-child(7) {
+    width: 10%;
+    min-width: 84px;
+    max-width: 96px;
+  }
+
+  .dashboard[data-admin-articles="1"] #tableauArticles td[data-col="titre"] strong {
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-break: normal;
+    hyphens: none;
+    line-height: 1.35;
+  }
+
+  .dashboard[data-admin-articles="1"] #tableauArticles td[data-col="description"] {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .dashboard[data-admin-articles="1"] #tableauArticles td[data-col="date"],
+  .dashboard[data-admin-articles="1"] #tableauArticles td[data-col="actions"] {
+    text-align: center;
+    vertical-align: middle;
+  }
+
+  .dashboard[data-admin-articles="1"] #tableauArticles td[data-col="actions"] {
+    white-space: nowrap;
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+
+  .dashboard[data-admin-articles="1"] #tableauArticles td[data-col="actions"] .btn {
+    min-width: 32px;
+    min-height: 32px;
+    padding: 6px;
+  }
+
+  .dashboard[data-admin-articles="1"] #tableauArticles td[data-col="description"] {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.35;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1200px) {
+  .dashboard[data-admin-articles="1"] .table-container {
+    --admin-table-thumb-width: 96px;
+    --admin-table-thumb-height: 64px;
+  }
+
+  .dashboard[data-admin-articles="1"] #tableauArticles th,
+  .dashboard[data-admin-articles="1"] #tableauArticles td {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .dashboard[data-admin-articles="1"] #tableauArticles th:nth-child(1),
+  .dashboard[data-admin-articles="1"] #tableauArticles td:nth-child(1) {
+    width: 11%;
+    min-width: 96px;
+  }
+  .dashboard[data-admin-articles="1"] #tableauArticles th:nth-child(2),
+  .dashboard[data-admin-articles="1"] #tableauArticles td:nth-child(2) {
+    width: 26%;
+  }
+  .dashboard[data-admin-articles="1"] #tableauArticles th:nth-child(3),
+  .dashboard[data-admin-articles="1"] #tableauArticles td:nth-child(3) {
+    width: 20%;
+  }
+  .dashboard[data-admin-articles="1"] #tableauArticles th:nth-child(4),
+  .dashboard[data-admin-articles="1"] #tableauArticles td:nth-child(4) {
+    width: 12%;
+  }
+  .dashboard[data-admin-articles="1"] #tableauArticles th:nth-child(5),
+  .dashboard[data-admin-articles="1"] #tableauArticles td:nth-child(5) {
+    width: 12%;
+  }
+  .dashboard[data-admin-articles="1"] #tableauArticles th:nth-child(6),
+  .dashboard[data-admin-articles="1"] #tableauArticles td:nth-child(6) {
+    width: 9%;
+    min-width: 78px;
+  }
+  .dashboard[data-admin-articles="1"] #tableauArticles th:nth-child(7),
+  .dashboard[data-admin-articles="1"] #tableauArticles td:nth-child(7) {
+    width: 10%;
+    min-width: 86px;
+    max-width: 96px;
+  }
+
+  .dashboard[data-admin-articles="1"] #tableauArticles td[data-col="actions"] .btn {
+    min-width: 32px;
+    min-height: 32px;
+    padding: 6px;
+  }
+}
+
+@media (min-width: 1201px) {
+  .dashboard[data-admin-articles="1"] .table-container {
+    --admin-table-thumb-width: 112px;
+    --admin-table-thumb-height: 74px;
+  }
 }

@@ -1,7 +1,3 @@
-// ============================================================
-// header.scss — Navigation (MOBILE FIRST)
-// Base = mobile, puis @include tablette / desktop pour agrandir
-// ============================================================
 
 @use "variables" as *;
 
@@ -9,7 +5,6 @@
   box-sizing: border-box;
 }
 
-// === Navigation ===
 .barre-navigation {
   background-color: $blanc;
   border-bottom: 2px solid $gris-clair;
@@ -45,7 +40,6 @@
   }
 }
 
-// === Logo ===
 .logo-entete {
   display: flex;
   align-items: center;
@@ -78,7 +72,6 @@
   }
 }
 
-// === Liens nav (masqués en mobile) ===
 .liens-navigation {
   display: none;
 
@@ -127,7 +120,6 @@
   }
 }
 
-// === Bouton menu (mobile only) ===
 .bouton-menu {
   display: block;
   background: none;
@@ -146,7 +138,6 @@
   }
 }
 
-// === Auth (masqué en mobile) ===
 .liens-authentification {
   display: none;
 
@@ -175,7 +166,6 @@
   }
 }
 
-// === Menu mobile ===
 .menu-mobile {
   display: none;
   position: absolute;
@@ -221,7 +211,6 @@
   }
 }
 
-// === Profil ===
 .profil-container {
   display: flex;
   align-items: center;
@@ -267,7 +256,6 @@
   letter-spacing: 0.5px;
 }
 
-// === Dropdown ===
 .profil-dropdown {
   display: none;
   position: absolute;
@@ -335,7 +323,6 @@
   margin: 0.5rem 0;
 }
 
-// === Avatars ===
 .user-avatar {
   width: 42px;
   height: 42px;

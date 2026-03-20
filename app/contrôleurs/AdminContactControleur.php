@@ -3,19 +3,16 @@
 require_once __DIR__ . '/../modèles/AdminContactModele.php';
 require_once __DIR__ . '/../helpers/CsrfHelper.php';
 require_once __DIR__ . '/../helpers/JsonResponseHelper.php';
+require_once __DIR__ . '/../helpers/Pagination.php';
 
 class AdminContactControleur
 {
     private AdminContactModele $modele;
+    private array $statutsAutorises = ['all', 'non_lu', 'lu', 'traite'];
 
     public function __construct()
     {
         if (session_status() === PHP_SESSION_NONE) session_start();
-
-        if (!isset($_SESSION['utilisateur_role']) || strtolower($_SESSION['utilisateur_role']) !== 'admin') {
-            header('Location: ?page=login');
-            exit;
-        }
 
         $this->modele = new AdminContactModele();
         CsrfHelper::init();
@@ -24,15 +21,14 @@ class AdminContactControleur
     public function gererRequete(): void
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            // Vérification CSRF (POST traditionnel ou AJAX)
+            
             $csrfValid = CsrfHelper::verifierJetonPost() || CsrfHelper::verifierJetonEntete();
 
             if (!$csrfValid) {
-                // Régénérer le token pour éviter les blocages
-                $newToken = CsrfHelper::genererJeton();
-
                 if (JsonResponseHelper::estAjax()) {
-                    JsonResponseHelper::erreur("Token de sécurité invalide", 403, ['new_token' => $newToken]);
+                    JsonResponseHelper::erreurAvecDonnees("Token de sécurité invalide", 403, [
+                        'new_token' => CsrfHelper::genererJeton()
+                    ]);
                 }
                 $_SESSION['message'] = "Token de sécurité invalide.";
                 $_SESSION['message_type'] = "danger";
@@ -67,10 +63,11 @@ class AdminContactControleur
                     }
                 }
             } catch (Throwable $e) {
+                error_log('AdminContactControleur::gererRequete - ' . $e->getMessage());
                 if (JsonResponseHelper::estAjax()) {
-                    JsonResponseHelper::erreur($e->getMessage(), 500);
+                    JsonResponseHelper::erreurServeur('Une erreur est survenue lors du traitement de la demande.');
                 }
-                $_SESSION['message'] = "Erreur : " . $e->getMessage();
+                $_SESSION['message'] = "Une erreur est survenue lors du traitement de la demande.";
                 $_SESSION['message_type'] = "danger";
             }
 
@@ -84,13 +81,46 @@ class AdminContactControleur
     public function index(): void
     {
         $contacts = $this->modele->tousLesElements() ?? [];
+        $recherche = trim((string)($_GET['q'] ?? ''));
+        $statut = strtolower(trim((string)($_GET['statut'] ?? 'all')));
+        if (!in_array($statut, $this->statutsAutorises, true)) {
+            $statut = 'all';
+        }
 
         $total = count($contacts);
         $non_lus = count(array_filter($contacts, fn($c) => $c['statut'] === 'non_lu'));
         $lus = count(array_filter($contacts, fn($c) => $c['statut'] === 'lu'));
         $traites = count(array_filter($contacts, fn($c) => $c['statut'] === 'traite'));
 
+        $rechercheNormalisee = mb_strtolower($recherche, 'UTF-8');
+        $contactsFiltres = array_values(array_filter(
+            $contacts,
+            function (array $contact) use ($statut, $rechercheNormalisee): bool {
+                $statutContact = strtolower((string)($contact['statut'] ?? ''));
+                if ($statut !== 'all' && $statutContact !== $statut) {
+                    return false;
+                }
+
+                if ($rechercheNormalisee === '') {
+                    return true;
+                }
+
+                $index = mb_strtolower(implode(' ', [
+                    (string)($contact['nom'] ?? ''),
+                    (string)($contact['email'] ?? ''),
+                    (string)($contact['sujet'] ?? ''),
+                    (string)($contact['message'] ?? ''),
+                ]), 'UTF-8');
+
+                return mb_strpos($index, $rechercheNormalisee, 0, 'UTF-8') !== false;
+            }
+        ));
+
         $stats = ['total' => $total, 'non_lus' => $non_lus, 'lus' => $lus, 'traites' => $traites];
+        $totalFiltres = count($contactsFiltres);
+        $pagination = new Pagination($totalFiltres, 10);
+        $contacts = array_slice($contactsFiltres, $pagination->offset(), $pagination->limit());
+        $filtreStatut = $statut;
         include __DIR__ . '/../vues/admin/contact-admin.php';
     }
 }

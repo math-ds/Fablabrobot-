@@ -1,145 +1,185 @@
-/**
- * Système de notifications toast modernes
- *
- * Affiche des notifications élégantes en haut à droite de l'écran
- * avec fermeture automatique et animations fluides
- *
- * @author Fablabrobot
- * @version 1.0.0
- */
 const ToastNotification = {
   conteneur: null,
+  timers: new WeakMap(),
 
-  /**
-   * Initialise le conteneur de toasts
-   * Crée un div qui contiendra toutes les notifications
-   */
-  initialiser: function() {
-    if (this.conteneur) return;
+  normaliserType(type) {
+    const value = String(type || "info")
+      .trim()
+      .toLowerCase();
+    const map = {
+      success: "success",
+      succes: "success",
+      info: "info",
+      warning: "warning",
+      avertissement: "warning",
+      danger: "danger",
+      error: "danger",
+      erreur: "danger",
+    };
+    return map[value] || "info";
+  },
 
-    this.conteneur = document.createElement('div');
-    this.conteneur.id = 'toast-conteneur';
-    this.conteneur.className = 'toast-conteneur';
+  normaliserDuree(type, duree) {
+    const parsed = Number(duree);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return Math.max(1200, Math.min(parsed, 15000));
+    }
+    return type === "danger" ? 6000 : 4200;
+  },
+
+  obtenirIcone(type) {
+    const icones = {
+      success: '<i class="fas fa-check-circle" aria-hidden="true"></i>',
+      danger: '<i class="fas fa-exclamation-circle" aria-hidden="true"></i>',
+      warning: '<i class="fas fa-exclamation-triangle" aria-hidden="true"></i>',
+      info: '<i class="fas fa-info-circle" aria-hidden="true"></i>',
+    };
+    return icones[type] || icones.info;
+  },
+
+  securiserTexte(message) {
+    return String(message ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  },
+
+  initialiser() {
+    if (this.conteneur) {
+      return;
+    }
+
+    const existing = document.getElementById("toast-conteneur");
+    if (existing) {
+      this.conteneur = existing;
+      return;
+    }
+
+    this.conteneur = document.createElement("div");
+    this.conteneur.id = "toast-conteneur";
+    this.conteneur.className = "toast-conteneur";
+    this.conteneur.setAttribute("aria-live", "polite");
+    this.conteneur.setAttribute("aria-atomic", "false");
     document.body.appendChild(this.conteneur);
   },
 
-  /**
-   * Affiche un toast
-   *
-   * @param {string} message - Le message à afficher
-   * @param {string} type - Le type de toast (info, success, danger, warning)
-   * @param {number} duree - Durée d'affichage en millisecondes (par défaut 4000)
-   */
-  afficher: function(message, type = 'info', duree = 4000) {
+  planifierFermeture(toast, duree) {
+    const start = Date.now();
+    const timeoutId = window.setTimeout(() => this.fermer(toast), duree);
+    this.timers.set(toast, { timeoutId, start, remaining: duree });
+  },
+
+  pauseFermeture(toast) {
+    const timer = this.timers.get(toast);
+    if (!timer) {
+      return;
+    }
+    clearTimeout(timer.timeoutId);
+    const elapsed = Date.now() - timer.start;
+    timer.remaining = Math.max(600, timer.remaining - elapsed);
+    this.timers.set(toast, timer);
+  },
+
+  reprendreFermeture(toast) {
+    const timer = this.timers.get(toast);
+    if (!timer) {
+      return;
+    }
+    clearTimeout(timer.timeoutId);
+    timer.start = Date.now();
+    timer.timeoutId = window.setTimeout(() => this.fermer(toast), Math.max(600, timer.remaining));
+    this.timers.set(toast, timer);
+  },
+
+  fermer(toast) {
+    if (!(toast instanceof HTMLElement)) {
+      return;
+    }
+
+    const timer = this.timers.get(toast);
+    if (timer) {
+      clearTimeout(timer.timeoutId);
+      this.timers.delete(toast);
+    }
+
+    toast.classList.remove("toast-visible");
+    window.setTimeout(() => {
+      if (toast.parentNode) {
+        toast.remove();
+      }
+    }, 220);
+  },
+
+  afficher(message, type = "info", duree = 4200) {
     this.initialiser();
+    const text = String(message || "").trim();
+    if (text === "") {
+      return;
+    }
 
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
+    const normalizedType = this.normaliserType(type);
+    const normalizedDuree = this.normaliserDuree(normalizedType, duree);
+    const role = normalizedType === "danger" || normalizedType === "warning" ? "alert" : "status";
 
-    const icone = this.obtenirIcone(type);
-    // Échapper le HTML pour éviter les injections XSS
-    const messageSecurise = String(message)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
-
+    const toast = document.createElement("div");
+    toast.className = `toast toast-${normalizedType}`;
+    toast.setAttribute("role", role);
+    toast.setAttribute("aria-live", role === "alert" ? "assertive" : "polite");
     toast.innerHTML = `
-      <div class="toast-icone">${icone}</div>
-      <div class="toast-message">${messageSecurise}</div>
-      <button class="toast-fermer" aria-label="Fermer">&times;</button>
+      <div class="toast-icone">${this.obtenirIcone(normalizedType)}</div>
+      <div class="toast-message">${this.securiserTexte(text)}</div>
+      <button type="button" class="toast-fermer" aria-label="Fermer la notification">&times;</button>
     `;
 
-    // Animation d'entrée
     this.conteneur.appendChild(toast);
-    setTimeout(() => toast.classList.add('toast-visible'), 10);
+    requestAnimationFrame(() => toast.classList.add("toast-visible"));
 
-    // Fermeture automatique
-    const fermerToast = () => {
-      toast.classList.remove('toast-visible');
-      setTimeout(() => {
-        if (toast.parentNode) {
-          toast.remove();
-        }
-      }, 300);
-    };
+    const closeBtn = toast.querySelector(".toast-fermer");
+    if (closeBtn) {
+      closeBtn.addEventListener("click", () => this.fermer(toast));
+    }
 
-    const timeoutId = setTimeout(fermerToast, duree);
+    toast.addEventListener("mouseenter", () => this.pauseFermeture(toast));
+    toast.addEventListener("mouseleave", () => this.reprendreFermeture(toast));
 
-    // Fermeture manuelle
-    toast.querySelector('.toast-fermer').addEventListener('click', () => {
-      clearTimeout(timeoutId);
-      fermerToast();
-    });
-
-    // Pause sur hover
-    toast.addEventListener('mouseenter', () => clearTimeout(timeoutId));
-    toast.addEventListener('mouseleave', () => {
-      setTimeout(fermerToast, 1000);
-    });
+    this.planifierFermeture(toast, normalizedDuree);
   },
 
-  /**
-   * Affiche un toast de succès
-   *
-   * @param {string} message - Le message à afficher
-   * @param {number} duree - Durée d'affichage (optionnel)
-   */
-  succes: function(message, duree) {
-    this.afficher(message, 'success', duree);
+  succes(message, duree) {
+    this.afficher(message, "success", duree);
   },
 
-  /**
-   * Affiche un toast d'erreur
-   *
-   * @param {string} message - Le message à afficher
-   * @param {number} duree - Durée d'affichage (optionnel)
-   */
-  erreur: function(message, duree) {
-    this.afficher(message, 'danger', duree);
+  success(message, duree) {
+    this.afficher(message, "success", duree);
   },
 
-  /**
-   * Affiche un toast d'avertissement
-   *
-   * @param {string} message - Le message à afficher
-   * @param {number} duree - Durée d'affichage (optionnel)
-   */
-  avertissement: function(message, duree) {
-    this.afficher(message, 'warning', duree);
+  erreur(message, duree) {
+    this.afficher(message, "danger", duree);
   },
 
-  /**
-   * Affiche un toast d'information
-   *
-   * @param {string} message - Le message à afficher
-   * @param {number} duree - Durée d'affichage (optionnel)
-   */
-  info: function(message, duree) {
-    this.afficher(message, 'info', duree);
+  error(message, duree) {
+    this.afficher(message, "danger", duree);
   },
 
-  /**
-   * Retourne l'icône FontAwesome correspondant au type
-   *
-   * @param {string} type - Le type de toast
-   * @returns {string} Le HTML de l'icône
-   */
-  obtenirIcone: function(type) {
-    const icones = {
-      success: '<i class="fas fa-check-circle"></i>',
-      danger: '<i class="fas fa-exclamation-circle"></i>',
-      warning: '<i class="fas fa-exclamation-triangle"></i>',
-      info: '<i class="fas fa-info-circle"></i>'
-    };
-    return icones[type] || icones.info;
-  }
+  danger(message, duree) {
+    this.afficher(message, "danger", duree);
+  },
+
+  avertissement(message, duree) {
+    this.afficher(message, "warning", duree);
+  },
+
+  warning(message, duree) {
+    this.afficher(message, "warning", duree);
+  },
+
+  info(message, duree) {
+    this.afficher(message, "info", duree);
+  },
 };
 
-// Auto-initialisation au chargement de la page
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener("DOMContentLoaded", () => {
   ToastNotification.initialiser();
 });
-
-console.log('🍞 ToastNotification chargé');

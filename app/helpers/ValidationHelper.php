@@ -1,24 +1,9 @@
 <?php
-/**
- * Helper de validation et sanitisation
- *
- * Fournit des méthodes centralisées pour valider et nettoyer
- * toutes les entrées utilisateur de manière sécurisée
- *
- * @author Fablabrobot
- * @version 1.0.0
- */
+require_once __DIR__ . '/RoleHelper.php';
+
 class ValidationHelper
 {
-    /**
-     * Valide une chaîne de caractères avec longueur min/max
-     *
-     * @param string $valeur La valeur à valider
-     * @param int $longueurMin Longueur minimale requise
-     * @param int $longueurMax Longueur maximale autorisée
-     * @param string $nomChamp Nom du champ pour les messages d'erreur
-     * @return array ['valid' => bool, 'error' => string|null, 'value' => string]
-     */
+    
     public static function validerChaine(string $valeur, int $longueurMin, int $longueurMax, string $nomChamp): array
     {
         $valeur = trim($valeur);
@@ -56,12 +41,7 @@ class ValidationHelper
         ];
     }
 
-    /**
-     * Valide une adresse email
-     *
-     * @param string $email L'email à valider
-     * @return array ['valid' => bool, 'error' => string|null, 'value' => string]
-     */
+    
     public static function validerEmail(string $email): array
     {
         $email = trim($email);
@@ -82,7 +62,7 @@ class ValidationHelper
             ];
         }
 
-        // Vérifier la longueur maximale (254 caractères selon RFC 5321)
+        
         if (mb_strlen($email, 'UTF-8') > 254) {
             return [
                 'valid' => false,
@@ -98,13 +78,7 @@ class ValidationHelper
         ];
     }
 
-    /**
-     * Valide une URL ou un chemin de fichier local
-     *
-     * @param string $url L'URL ou le chemin de fichier à valider
-     * @param bool $obligatoire Si l'URL est obligatoire
-     * @return array ['valid' => bool, 'error' => string|null, 'value' => string]
-     */
+    
     public static function validerUrl(string $url, bool $obligatoire = false): array
     {
         $url = trim($url);
@@ -124,7 +98,7 @@ class ValidationHelper
             ];
         }
 
-        // Vérifier si c'est un chemin de fichier local (commence par images/ ou contient juste un nom de fichier)
+        
         if (preg_match('/^(images\/|uploads\/|[a-zA-Z0-9_\-\.]+\.(jpg|jpeg|png|gif|webp|svg))/', $url)) {
             return [
                 'valid' => true,
@@ -133,7 +107,7 @@ class ValidationHelper
             ];
         }
 
-        // Sinon, valider comme une URL externe
+        
         if (!filter_var($url, FILTER_VALIDATE_URL)) {
             return [
                 'valid' => false,
@@ -142,7 +116,7 @@ class ValidationHelper
             ];
         }
 
-        // Vérifier que l'URL utilise HTTP ou HTTPS
+        
         $scheme = parse_url($url, PHP_URL_SCHEME);
         if (!in_array($scheme, ['http', 'https'])) {
             return [
@@ -159,17 +133,10 @@ class ValidationHelper
         ];
     }
 
-    /**
-     * Valide un fichier image de manière robuste
-     * Vérifie le type MIME réel, le contenu, l'extension et la taille
-     *
-     * @param array $fichier Le tableau $_FILES['nom_champ']
-     * @param int $tailleMaxKo Taille maximale en Ko (par défaut 5 Mo = 5120 Ko)
-     * @return array ['valid' => bool, 'error' => string|null, 'extension' => string|null]
-     */
+    
     public static function validerFichierImage(array $fichier, int $tailleMaxKo = 5120): array
     {
-        // Vérifier qu'un fichier a été uploadé
+        
         if (empty($fichier['tmp_name']) || $fichier['error'] !== UPLOAD_ERR_OK) {
             $messages = [
                 UPLOAD_ERR_INI_SIZE => "Le fichier dépasse la taille maximale autorisée par le serveur.",
@@ -190,7 +157,7 @@ class ValidationHelper
             ];
         }
 
-        // Vérifier la taille du fichier
+        
         $tailleOctets = filesize($fichier['tmp_name']);
         $tailleMaxOctets = $tailleMaxKo * 1024;
 
@@ -203,7 +170,7 @@ class ValidationHelper
             ];
         }
 
-        // Vérifier que le fichier est une image via getimagesize()
+        
         $infoImage = @getimagesize($fichier['tmp_name']);
         if ($infoImage === false) {
             return [
@@ -213,7 +180,7 @@ class ValidationHelper
             ];
         }
 
-        // Vérifier le type MIME réel avec mime_content_type()
+        
         $mimeReel = mime_content_type($fichier['tmp_name']);
         $mimesAutorises = [
             'image/jpeg',
@@ -231,7 +198,7 @@ class ValidationHelper
             ];
         }
 
-        // Extraire l'extension à partir du type MIME (plus sûr que le nom de fichier)
+        
         $extensionsParMime = [
             'image/jpeg' => 'jpg',
             'image/jpg' => 'jpg',
@@ -249,42 +216,29 @@ class ValidationHelper
         ];
     }
 
-    /**
-     * Sanitise du contenu HTML
-     * Supprime les balises HTML et échappe les caractères spéciaux
-     *
-     * @param string $texte Le texte à sanitiser
-     * @param bool $autoriserBalises Si true, autorise les balises HTML basiques
-     * @return string Le texte sanitisé
-     */
+    
     public static function assainirHtml(string $texte, bool $autoriserBalises = false): string
     {
         if ($autoriserBalises) {
-            // Autoriser seulement les balises sûres
+            
             $balisesAutorisees = '<p><br><strong><em><u><a><ul><ol><li><h1><h2><h3>';
             $texte = strip_tags($texte, $balisesAutorisees);
         } else {
-            // Supprimer toutes les balises HTML
+            
             $texte = strip_tags($texte);
         }
 
-        // Échapper les caractères spéciaux
+        
         return htmlspecialchars($texte, ENT_QUOTES, 'UTF-8');
     }
 
-    /**
-     * Valide un rôle utilisateur
-     * Vérifie que le rôle fait partie de la whitelist
-     *
-     * @param string $role Le rôle à valider
-     * @return array ['valid' => bool, 'error' => string|null, 'value' => string]
-     */
+    
     public static function validerRole(string $role): array
     {
-        $rolesAutorises = ['admin', 'editeur', 'utilisateur'];
-        $role = strtolower(trim($role));
+        $rolesAutorises = [RoleHelper::ADMIN, RoleHelper::EDITEUR, RoleHelper::UTILISATEUR];
+        $role = RoleHelper::normaliser($role);
 
-        // Normaliser "éditeur" (avec accent) en "editeur" (sans accent)
+        
         if ($role === 'éditeur') {
             $role = 'editeur';
         }
@@ -312,13 +266,7 @@ class ValidationHelper
         ];
     }
 
-    /**
-     * Valide un statut de message contact
-     * Vérifie que le statut fait partie de la whitelist
-     *
-     * @param string $statut Le statut à valider
-     * @return array ['valid' => bool, 'error' => string|null, 'value' => string]
-     */
+    
     public static function validerStatutContact(string $statut): array
     {
         $statutsAutorises = ['non_lu', 'lu', 'traite'];
@@ -347,12 +295,7 @@ class ValidationHelper
         ];
     }
 
-    /**
-     * Valide un type de vidéo WebTV
-     *
-     * @param string $type Le type à valider
-     * @return array ['valid' => bool, 'error' => string|null, 'value' => string]
-     */
+    
     public static function validerTypeVideo(string $type): array
     {
         $typesAutorises = ['local', 'youtube'];
@@ -381,13 +324,7 @@ class ValidationHelper
         ];
     }
 
-    /**
-     * Valide un ID YouTube
-     *
-     * @param string $youtubeId L'ID YouTube à valider
-     * @param bool $obligatoire Si l'ID est obligatoire
-     * @return array ['valid' => bool, 'error' => string|null, 'value' => string]
-     */
+    
     public static function validerIdYoutube(string $youtubeId, bool $obligatoire = false): array
     {
         $youtubeId = trim($youtubeId);
@@ -407,7 +344,7 @@ class ValidationHelper
             ];
         }
 
-        // Un ID YouTube fait généralement 11 caractères et contient seulement des lettres, chiffres, - et _
+        
         if (!preg_match('/^[a-zA-Z0-9_-]{11}$/', $youtubeId)) {
             return [
                 'valid' => false,
@@ -423,13 +360,7 @@ class ValidationHelper
         ];
     }
 
-    /**
-     * Valide une URL YouTube et extrait l'ID de la vidéo
-     *
-     * @param string $youtubeUrl L'URL YouTube à valider
-     * @param bool $obligatoire Si l'URL est obligatoire
-     * @return array ['valid' => bool, 'error' => string|null, 'value' => string, 'id' => string|null]
-     */
+    
     public static function validerUrlYoutube(string $youtubeUrl, bool $obligatoire = false): array
     {
         $youtubeUrl = trim($youtubeUrl);
@@ -451,7 +382,7 @@ class ValidationHelper
             ];
         }
 
-        // Vérifier que c'est une URL valide
+        
         if (!filter_var($youtubeUrl, FILTER_VALIDATE_URL)) {
             return [
                 'valid' => false,
@@ -461,14 +392,14 @@ class ValidationHelper
             ];
         }
 
-        // Extraire l'ID YouTube de différentes formes d'URL
+        
         $videoId = null;
 
-        // Format: https://www.youtube.com/watch?v=VIDEO_ID
+        
         if (preg_match('/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/', $youtubeUrl, $matches)) {
             $videoId = $matches[1];
         }
-        // Format: https://youtube.com/v/VIDEO_ID
+        
         elseif (preg_match('/youtube\.com\/v\/([a-zA-Z0-9_-]{11})/', $youtubeUrl, $matches)) {
             $videoId = $matches[1];
         }
@@ -482,7 +413,7 @@ class ValidationHelper
             ];
         }
 
-        // Valider l'ID extrait
+        
         $idValidation = self::validerIdYoutube($videoId, true);
         if (!$idValidation['valid']) {
             return [

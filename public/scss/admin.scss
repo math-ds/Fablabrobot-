@@ -1,0 +1,11 @@
+@use "variables";
+@use "base/typographie";
+@use "base/system-variables";
+@use "base/system-components";
+@use "base/system-utilitaires";
+@use "base/base";
+@use "admin/admin-base";
+
+@import "../admin-commun.css";
+@import "../pagination.css";
+@import "../toast-notification.css";

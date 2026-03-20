@@ -1,4 +1,6 @@
-
+<?php
+$baseUrl = $GLOBALS['baseUrl'] ?? '/Fablabrobot/public/';
+?>
   <footer class="site-footer">
     <div class="site-footer-container">
 
@@ -18,6 +20,7 @@
         <ul>
           <li><a href="?page=accueil">Accueil</a></li>
           <li><a href="?page=articles">Articles</a></li>
+          <li><a href="?page=actualites">Actualités</a></li>
           <li><a href="?page=projets">Projets</a></li>
           <li><a href="?page=webtv">WebTV</a></li>
           <li><a href="?page=contact">Contact</a></li>
@@ -26,11 +29,6 @@
     </div>
 
     <div class="site-footer-bottom">
-      <p>&copy; <?= date("Y") ?> AJC Formation — Tous droits réservés.</p>
+      <p>&copy; <?= date('Y') ?> AJC Formation — Tous droits réservés.</p>
     </div>
   </footer>
-
-  <!-- Bootstrap JS -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>

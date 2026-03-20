@@ -1,281 +1,288 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) session_start();
+$adminTitle = 'Admin - Commentaires WebTV';
+$adminCss = ['admin-commentaires.css'];
 
-if (empty($_SESSION['utilisateur_role']) || strtolower($_SESSION['utilisateur_role']) !== 'admin') {
-    header('Location: ?page=login');
-    exit;
-}
+$valeurRecherche = trim((string)($_GET['q'] ?? ''));
+$filtreType = trim((string)($_GET['type'] ?? 'all'));
 
-$GLOBALS['baseUrl'] = '';
+require __DIR__ . '/../parties/admin-layout-start.php';
 ?>
 
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin — Commentaires WebTV</title>
+<div class="dashboard">
+    <div class="header-section">
+        <h1>Gestion des commentaires WebTV</h1>
+        <h2 class="sr-only">Sections principales</h2>
+        <p class="subtitle">Modérez les commentaires et leurs réponses.</p>
+    </div>
 
-    <?php require_once __DIR__ . '/../../helpers/CsrfHelper.php'; echo CsrfHelper::obtenirMetaJeton(); ?>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="<?= $GLOBALS['baseUrl'] ?>css/global.css">
-    <link rel="stylesheet" href="<?= $GLOBALS['baseUrl'] ?>css/admin-common.css">
-    <link rel="stylesheet" href="<?= $GLOBALS['baseUrl'] ?>css/admin-commentaires.css">
-    <link rel="stylesheet" href="<?= $GLOBALS['baseUrl'] ?>css/toast-notification.css">
-</head>
+    <?php if (!empty($_SESSION['message'])): ?>
+      <div
+        id="adminFlashData"
+        hidden
+        data-flash-type="<?= htmlspecialchars((string)($_SESSION['message_type'] ?? 'info'), ENT_QUOTES, 'UTF-8') ?>"
+        data-flash-message="<?= htmlspecialchars((string)$_SESSION['message'], ENT_QUOTES, 'UTF-8') ?>"></div>
+      <?php unset($_SESSION['message'], $_SESSION['message_type']); ?>
+    <?php endif; ?>
 
-<body>
-<div class="admin-container">
-
-    <!-- SIDEBAR -->
-    <aside class="sidebar">
-        <div>
-            <div class="sidebar-logo">
-                <a href="?page=admin">
-                    <img src="images/global/ajc_logo_blanc.png" alt="AJC Logo">
-                </a>
-            </div>
-            <?php require __DIR__ . '/../parties/sidebar.php'; ?>
+    <div class="stats-grid comments-stats">
+        <div class="stat-card">
+            <h3>Total commentaires</h3>
+            <div class="value" data-stat-key="total"><?= (int)($stats['total'] ?? 0) ?></div>
         </div>
-        <div class="sidebar-footer">
-            <a href="?page=logout" class="logout-btn">
-                <i class="fas fa-sign-out-alt"></i> Déconnexion
-            </a>
+        <div class="stat-card">
+            <h3>Nouveaux (7 jours)</h3>
+            <div class="value" data-stat-key="recent"><?= (int)($stats['recent'] ?? 0) ?></div>
         </div>
-    </aside>
-
-    <!-- CONTENU -->
-    <main class="main-content">
-
-        <!-- Header avec recherche -->
-        <header class="admin-header">
-            <div class="search-bar">
-                <input type="text" id="champRecherche" placeholder="Rechercher dans les commentaires, auteurs, vidéos...">
-            </div>
-        </header>
-
-        <!-- Dashboard wrapper -->
-        <div class="dashboard">
-
-            <!-- Header avec titre -->
-            <div class="header-section">
-                <h1>
-                    <i class="fas fa-comments"></i>
-                    Gestion des Commentaires WebTV
-                </h1>
-                <p class="subtitle">Surveillez et modérez les commentaires de vos vidéos WebTV</p>
-            </div>
-
-            <!-- Messages flash -->
-            <?php if (!empty($_SESSION['message'])): ?>
-                <script>
-                    document.addEventListener('DOMContentLoaded', function() {
-                        ToastNotification.<?= $_SESSION['message_type'] === 'success' ? 'succes' : 'erreur' ?>(
-                            <?= json_encode($_SESSION['message'], JSON_UNESCAPED_UNICODE) ?>
-                        );
-                    });
-                </script>
-                <?php unset($_SESSION['message'], $_SESSION['message_type']); ?>
-            <?php endif; ?>
-
-            <!-- Grille de statistiques standardisée -->
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <h3>Commentaires totaux</h3>
-                    <div class="value"><?= $stats['total'] ?? 0 ?></div>
-                </div>
-
-                <div class="stat-card">
-                    <h3>Vidéos commentées</h3>
-                    <div class="value"><?= count(array_unique(array_column($commentaires, 'video_id'))) ?></div>
-                </div>
-            </div>
-
-            <!-- Table des commentaires -->
-            <div class="table-container">
-                <div class="table-header">
-                    <h2>
-                        <i class="fas fa-list"></i>
-                        Liste des commentaires
-                    </h2>
-                </div>
-
-                <?php if (!empty($commentaires)): ?>
-                    <div class="users-table">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th class="col-id">#</th>
-                                    <th class="col-medium">Auteur</th>
-                                    <th class="col-medium">Vidéo associée</th>
-                                    <th class="col-large">Contenu du commentaire</th>
-                                    <th class="col-date">Date de publication</th>
-                                    <th class="col-actions text-center">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($commentaires as $c): ?>
-                                    <tr data-comment-id="<?= $c['id'] ?>" data-video-id="<?= $c['video_id'] ?? '' ?>" data-date="<?= strtotime($c['created_at'] ?? '') ?>">
-                                        <td style="color: rgba(245, 245, 245, 0.6); font-weight: 600;">#<?= (int)$c['id'] ?></td>
-
-                                        <td>
-                                            <div style="display: flex; flex-direction: column; gap: 4px;">
-                                                <strong style="color: #00afa7;">
-                                                    <?= htmlspecialchars($c['auteur'] ?? 'Anonyme') ?>
-                                                </strong>
-                                                <?php if (!empty($c['user_email'])): ?>
-                                                    <small style="color: rgba(245, 245, 245, 0.6);">
-                                                        <i class="fas fa-envelope"></i>
-                                                        <?= htmlspecialchars($c['user_email']) ?>
-                                                    </small>
-                                                <?php endif; ?>
-                                            </div>
-                                        </td>
-
-                                        <td>
-                                            <?php if (!empty($c['video_titre'])): ?>
-                                                <a href="?page=webtv&video=<?= (int)$c['video_id'] ?>"
-                                                   target="_blank"
-                                                   style="color: #00afa7; text-decoration: none; display: flex; align-items: center; gap: 8px;"
-                                                   title="Voir la vidéo">
-                                                    <i class="fas fa-video"></i>
-                                                    <span style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                                        <?= htmlspecialchars($c['video_titre']) ?>
-                                                    </span>
-                                                </a>
-                                            <?php else: ?>
-                                                <span style="color: rgba(245, 245, 245, 0.5); font-style: italic;">—</span>
-                                            <?php endif; ?>
-                                        </td>
-
-                                        <td>
-                                            <div style="max-width: 400px; line-height: 1.4;">
-                                                <div style="overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
-                                                    <?= htmlspecialchars($c['texte'] ?? '') ?>
-                                                </div>
-                                            </div>
-                                        </td>
-
-                                        <td>
-                                            <div style="display: flex; flex-direction: column; gap: 2px;">
-                                                <small style="color: rgba(245, 245, 245, 0.8); font-weight: 600;">
-                                                    <?= !empty($c['created_at']) ? date('d/m/Y', strtotime($c['created_at'])) : '—' ?>
-                                                </small>
-                                                <small style="color: rgba(245, 245, 245, 0.5);">
-                                                    <?= !empty($c['created_at']) ? date('H:i', strtotime($c['created_at'])) : '' ?>
-                                                </small>
-                                            </div>
-                                        </td>
-
-                                        <td class="text-center">
-                                            <button class="btn btn-primary btn-sm"
-                                                    title="Voir le commentaire complet"
-                                                    onclick='voirCommentaire(<?= json_encode($c, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'>
-                                                <i class="fas fa-eye"></i>
-                                            </button>
-                                            <button class="btn btn-danger btn-sm"
-                                                    title="Supprimer ce commentaire"
-                                                    onclick="supprimerCommentaire(<?= $c['id'] ?>, '<?= htmlspecialchars($c['auteur'] ?? 'Anonyme', ENT_QUOTES) ?>')">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                <?php else: ?>
-                    <div class="empty-state">
-                        <i class="fas fa-comments"></i>
-                        <h2>Aucun commentaire</h2>
-                        <p>
-                            <?php if (!empty($_GET['q'])): ?>
-                                Aucun commentaire trouvé pour "<strong><?= htmlspecialchars($_GET['q']) ?></strong>"
-                            <?php else: ?>
-                                Aucun commentaire n'a encore été publié sur vos vidéos WebTV
-                            <?php endif; ?>
-                        </p>
-                        <button class="btn btn-primary" onclick="window.location.href='?page=admin-webtv'" style="margin-top: 20px;">
-                            <i class="fas fa-video"></i>
-                            Gérer les vidéos
-                        </button>
-                    </div>
-                <?php endif; ?>
-            </div>
-
+        <div class="stat-card">
+            <h3>Commentaires racine</h3>
+            <div class="value" data-stat-key="parents"><?= (int)($stats['parents'] ?? 0) ?></div>
         </div>
-    </main>
-
-    <!-- Modal réutilisable pour afficher le commentaire complet -->
-    <div id="messageModal" class="contact-modal">
-        <div class="contact-modal-content">
-            <div class="contact-modal-header">
-                <h2><i class="fas fa-comment-alt"></i> Détail du commentaire</h2>
-                <button class="contact-close-modal" onclick="closeModal()">&times;</button>
-            </div>
-            <div id="messageDetails" class="message-details" style="color:var(--text-color-light);"></div>
+        <div class="stat-card">
+            <h3>Réponses</h3>
+            <div class="value" data-stat-key="reponses"><?= (int)($stats['reponses'] ?? 0) ?></div>
         </div>
     </div>
 
-    <script src="js/securite-helper.js"></script>
-    <script src="js/ajax-helper.js"></script>
-    <script src="js/toast-notification.js"></script>
-    <script src="js/recherche-helper.js"></script>
-    <script src="js/csrf_manager.js"></script>
-    <script src="js/gestion-contact.js"></script>
+    <div class="table-container">
+        <div class="table-header">
+            <h2>
+                <i class="fas fa-list"></i>
+                Liste des commentaires
+            </h2>
+            <?php
+                $filtreRechercheActif = trim((string)$valeurRecherche) !== '';
+                $filtreTypeActif = (string)$filtreType !== 'all';
+                $filtrageActif = $filtreRechercheActif || $filtreTypeActif;
+            ?>
+            <span class="header-count-pill">
+                <i class="fas fa-video"></i>
+                <?= (int)$videos_commentees ?> video(s) commentee(s)
+            </span>
+            <?php if ($filtrageActif): ?>
+                <span class="header-count-pill">
+                    <i class="fas fa-filter"></i>
+                    <?= (int)($total_commentaires ?? 0) ?> résultat(s)
+                </span>
+            <?php endif; ?>
+        </div>
 
-    <script>
-        // Initialiser la recherche améliorée
-        document.addEventListener('DOMContentLoaded', function() {
-            RechercheHelper.initialiser('champRecherche', 'table tbody tr');
-        });
-    </script>
+        <form method="GET" class="table-search comments-filters-form">
+            <input type="hidden" name="page" value="admin-comments">
 
-    <script>
-        // Fonction de suppression AJAX pour les commentaires
-        async function supprimerCommentaire(id, auteur) {
-            if (!confirm(`Êtes-vous sûr de vouloir supprimer le commentaire de "${auteur}" ?`)) {
-                return;
-            }
+            <div class="search-bar">
+                <input
+                    type="text"
+                    id="champRecherche"
+                    name="q"
+                    value="<?= htmlspecialchars($valeurRecherche, ENT_QUOTES, 'UTF-8') ?>"
+                    placeholder="Rechercher dans commentaires, auteurs, videos..."
+                    autocomplete="off">
+            </div>
 
-            try {
-                const data = await AjaxHelper.post('?page=admin-comments', {
-                    action: 'delete',
-                    id: id
-                });
+            <div class="comments-type-filter">
+                <label for="typeFilter" class="comments-type-label">Type</label>
+                <select id="typeFilter" name="type">
+                    <option value="all" <?= $filtreType === 'all' ? 'selected' : '' ?>>Tous</option>
+                    <option value="parent" <?= $filtreType === 'parent' ? 'selected' : '' ?>>Commentaires</option>
+                    <option value="reponse" <?= $filtreType === 'reponse' ? 'selected' : '' ?>>Réponses</option>
+                </select>
+            </div>
 
-                if (data.success) {
-                    ToastNotification.succes(data.message || 'Commentaire supprimé avec succès');
+            <div class="comments-filters-actions">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fas fa-filter"></i> Filtrer
+                </button>
+                <a href="?page=admin-comments" class="btn btn-secondary btn-sm">
+                    <i class="fas fa-rotate-left"></i> Reset
+                </a>
+            </div>
+        </form>
 
-                    // Supprimer la ligne du tableau avec animation
-                    const ligne = document.querySelector(`tr[data-comment-id="${id}"]`);
-                    if (ligne) {
-                        ligne.style.transition = 'opacity 0.3s';
-                        ligne.style.opacity = '0';
-                        setTimeout(() => ligne.remove(), 300);
-                    }
+        <?php if (!empty($commentaires)): ?>
+            <div class="users-table">
+                <table id="tableauCommentaires">
+                    <thead>
+                        <tr>
+                            <th class="col-id">#</th>
+                            <th class="col-small">Type</th>
+                            <th class="col-medium">Auteur</th>
+                            <th class="col-medium">Video</th>
+                            <th class="col-large">Contenu</th>
+                            <th class="col-date">Date</th>
+                            <th class="col-actions text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($commentaires as $c): ?>
+                            <?php
+                            $commentaireId = (int)($c['id'] ?? 0);
+                            $videoId = (int)($c['video_id'] ?? 0);
+                            $parentId = !empty($c['parent_id']) ? (int)$c['parent_id'] : 0;
+                            $isReply = $parentId > 0;
+                            $auteur = (string)($c['auteur'] ?? 'Anonyme');
+                            $parentAuteur = trim((string)($c['parent_auteur'] ?? ''));
+                            $parentTexte = trim((string)($c['parent_texte'] ?? ''));
+                            $couper = static function (string $texte, int $max): string {
+                                if (function_exists('mb_substr')) {
+                                    return mb_substr($texte, 0, $max);
+                                }
+                                return substr($texte, 0, $max);
+                            };
+                            $longueur = static function (string $texte): int {
+                                if (function_exists('mb_strlen')) {
+                                    return mb_strlen($texte);
+                                }
+                                return strlen($texte);
+                            };
 
-                    // Mettre à jour les compteurs
-                    const compteurs = document.querySelectorAll('.card-value');
-                    compteurs.forEach(compteur => {
-                        const match = compteur.textContent.match(/\d+/);
-                        if (match) {
-                            const actuel = parseInt(match[0]);
-                            compteur.textContent = compteur.textContent.replace(/\d+/, actuel - 1);
-                        }
-                    });
-                }
-            } catch (error) {
-                ToastNotification.erreur(
-                    error.data?.message || 'Erreur lors de la suppression'
-                );
-            }
-        }
-    </script>
+                            $parentTexteCourt = $parentTexte !== '' ? $couper($parentTexte, 120) : '';
+                            if ($parentTexteCourt !== '' && $longueur($parentTexte) > 120) {
+                                $parentTexteCourt .= '...';
+                            }
 
-    <!-- JavaScript menu mobile -->
-    <script src="js/admin-mobile-menu.js"></script>
+                            $payload = [
+                                'id' => $commentaireId,
+                                'video_id' => $videoId,
+                                'parent_id' => $parentId > 0 ? $parentId : null,
+                                'auteur' => $auteur,
+                                'user_email' => (string)($c['user_email'] ?? ''),
+                                'video_titre' => (string)($c['video_titre'] ?? ''),
+                                'created_at' => (string)($c['created_at'] ?? ''),
+                                'texte' => (string)($c['texte'] ?? ''),
+                                'parent_auteur' => $parentAuteur,
+                                'parent_texte' => $parentTexte,
+                            ];
+                            ?>
+                            <tr
+                                class="comment-row <?= $isReply ? 'is-reply' : 'is-parent' ?>"
+                                data-comment-id="<?= $commentaireId ?>"
+                                data-parent-id="<?= $parentId ?>"
+                                data-video-id="<?= $videoId ?>"
+                                data-date="<?= strtotime((string)($c['created_at'] ?? '')) ?>">
 
-</body>
-</html>
+                                <td data-label="#" data-col="id" class="comment-id-cell">#<?= $commentaireId ?></td>
+
+                                <td data-label="Type" data-col="type" class="comment-type-cell">
+                                    <span class="comment-type-badge <?= $isReply ? 'reply' : 'parent' ?>">
+                                        <?= $isReply ? 'Réponse' : 'Commentaire' ?>
+                                    </span>
+                                </td>
+
+                                <td data-label="Auteur" data-col="utilisateur">
+                                    <div class="comment-author-cell">
+                                        <strong class="comment-author-name"><?= htmlspecialchars($auteur, ENT_QUOTES, 'UTF-8') ?></strong>
+                                        <?php if (!empty($c['user_email'])): ?>
+                                            <small class="comment-author-email">
+                                                <i class="fas fa-envelope"></i>
+                                                <?= htmlspecialchars((string)$c['user_email'], ENT_QUOTES, 'UTF-8') ?>
+                                            </small>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+
+                                <td data-label="Video" data-col="titre">
+                                    <?php if (!empty($c['video_titre']) && $videoId > 0): ?>
+                                        <a href="?page=webtv&video=<?= $videoId ?>" target="_blank" class="comment-video-link" title="Voir la video">
+                                            <i class="fas fa-video"></i>
+                                            <span class="comment-video-title"><?= htmlspecialchars((string)$c['video_titre'], ENT_QUOTES, 'UTF-8') ?></span>
+                                        </a>
+                                    <?php else: ?>
+                                        <span class="comment-muted">-</span>
+                                    <?php endif; ?>
+                                </td>
+
+                                <td data-label="Contenu" data-col="description">
+                                    <div class="comment-content-cell">
+                                        <?php if ($isReply): ?>
+                                            <div class="comment-reply-block">
+                                                <p class="comment-reply-label">
+                                                    <i class="fas fa-reply"></i> Réponse à <?= htmlspecialchars($parentAuteur !== '' ? $parentAuteur : 'un commentaire', ENT_QUOTES, 'UTF-8') ?>
+                                                </p>
+                                                <?php if ($parentTexteCourt !== ''): ?>
+                                                    <p class="comment-parent-preview">
+                                                        <?= htmlspecialchars($parentTexteCourt, ENT_QUOTES, 'UTF-8') ?>
+                                                    </p>
+                                                <?php endif; ?>
+                                                <div class="comment-reply-text">
+                                                    <?= htmlspecialchars((string)($c['texte'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                                                </div>
+                                            </div>
+                                        <?php else: ?>
+                                            <div class="comment-text"><?= htmlspecialchars((string)($c['texte'] ?? ''), ENT_QUOTES, 'UTF-8') ?></div>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+
+                                <td data-label="Date" data-col="date">
+                                    <div class="comment-date-cell">
+                                        <small class="comment-date"><?= !empty($c['created_at']) ? date('d/m/Y', strtotime((string)$c['created_at'])) : '-' ?>
+                                        </small>
+                                        <small class="comment-time">
+                                            <?= !empty($c['created_at']) ? date('H:i', strtotime((string)$c['created_at'])) : '' ?>
+                                        </small>
+                                    </div>
+                                </td>
+
+                                <td class="text-center" data-label="Actions" data-col="actions">
+                                    <button
+                                        class="btn btn-primary btn-sm"
+                                        type="button"
+                                        title="Voir le commentaire complet"
+                                        data-comment-view="<?= htmlspecialchars((string)json_encode($payload, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button
+                                        class="btn btn-danger btn-sm"
+                                        type="button"
+                                        title="Supprimer ce commentaire"
+                                        data-comment-delete-id="<?= $commentaireId ?>"
+                                        data-comment-delete-name="<?= htmlspecialchars($auteur, ENT_QUOTES, 'UTF-8') ?>">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <?php require __DIR__ . '/../parties/pagination.php'; ?>
+        <?php else: ?>
+            <div class="empty-state">
+                <i class="fas fa-comments"></i>
+                <h2>Aucun commentaire</h2>
+                <p>
+                    <?php if ($valeurRecherche !== ''): ?>
+                        Aucun résultat pour "<strong><?= htmlspecialchars($valeurRecherche, ENT_QUOTES, 'UTF-8') ?></strong>".
+                    <?php elseif ($filtreType === 'parent'): ?>
+                        Aucun commentaire racine trouvé.
+                    <?php elseif ($filtreType === 'reponse'): ?>
+                        Aucune réponse trouvée.
+                    <?php else: ?>
+                        Aucun commentaire n'a encore été publié.
+                    <?php endif; ?>
+                </p>
+                <button class="btn btn-primary" type="button" data-comment-redirect="?page=admin-webtv">
+                    <i class="fas fa-video"></i>
+                    Gérer les vidéos
+                </button>
+            </div>
+        <?php endif; ?>
+    </div>
+</div>
+
+<div id="messageModal" class="contact-modal" role="dialog" aria-modal="true" aria-hidden="true" aria-label="Détail commentaire">
+    <div class="contact-modal-content">
+        <div class="contact-modal-header">
+            <h2><i class="fas fa-comment-alt"></i> Détail du commentaire</h2>
+            <button class="contact-close-modal" type="button" data-comment-close-modal="1" aria-label="Fermer la modale">&times;</button>
+        </div>
+        <div id="messageDetails" class="message-details"></div>
+    </div>
+</div>
+
+<?php
+$adminScripts = ['js/securite-helper.js', 'js/ajax-helper.js', 'js/toast-notification.js', 'js/csrf_manager.js', 'js/gestion-contact.js', 'js/admin-commentaires-actions.js'];
+require __DIR__ . '/../parties/admin-layout-end.php';
+?>
+
+

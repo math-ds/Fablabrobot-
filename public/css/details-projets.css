@@ -1,4 +1,1 @@
-/**
- * Hérite de projets.css
- * Styles spécifiques aux détails du projet
- */
+@import url("details-partages.css");

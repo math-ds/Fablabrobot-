@@ -1,0 +1,404 @@
+#conteneurApercuImage,
+#imagePreviewContainer,
+#localPreviewContainer,
+#localPreviewArticleContainer {
+  display: none;
+  margin-top: 15px;
+  text-align: center;
+}
+
+.preview-label {
+  color: #00afa7;
+  font-weight: 600;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.preview-wrapper {
+  position: relative;
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+#apercuImage,
+#imagePreview,
+#localPreview,
+#localPreviewArticle {
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: 10px;
+  border: 2px solid #00afa7;
+  display: none;
+  transition: all 0.3s ease;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.admin-preview-image {
+  width: 200px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 2px solid var(--card-border);
+}
+
+#apercuImage:hover,
+#imagePreview:hover,
+#localPreview:hover,
+#localPreviewArticle:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 15px rgba(0, 175, 167, 0.3);
+  border-color: #00afa7;
+}
+
+#spinnerChargementImage,
+#imageLoadingSpinner,
+.image-loading-spinner {
+  display: none;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.7);
+  padding: 20px;
+  border-radius: 10px;
+  color: #00afa7;
+  font-size: 2rem;
+}
+
+#erreurApercuImage,
+#imagePreviewError,
+.image-preview-error {
+  display: none;
+  background: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  padding: 12px;
+  border-radius: 8px;
+  color: #ff6b6b;
+  margin-top: 15px;
+}
+
+#erreurApercuImage i,
+#imagePreviewError i,
+.image-preview-error i {
+  font-size: 1.2rem;
+  margin-right: 8px;
+}
+
+.info-box {
+  background: rgba(0, 175, 167, 0.1);
+  border: 1px solid rgba(0, 175, 167, 0.3);
+  padding: 12px;
+  border-radius: 8px;
+  margin-top: 10px;
+  font-size: 0.9rem;
+  color: var(--primary-color);
+}
+
+.sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: rgba(25, 26, 40, 0.5);
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: #00afa7;
+  border-radius: 3px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: #008f88;
+}
+
+.user-info {
+  display: block;
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-circle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.user-avatar span {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-circle);
+  background: var(--primary-alpha-20);
+  font-weight: var(--font-weight-bold);
+  color: var(--white);
+  font-size: var(--font-size-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-circle);
+  object-fit: cover;
+  display: block;
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.user-name {
+  font-weight: var(--font-weight-semibold);
+  color: var(--white);
+}
+
+#tableauUtilisateurs th:nth-child(3),
+#tableauUtilisateurs td:nth-child(3) {
+  width: 14%;
+  min-width: 92px;
+}
+
+#tableauUtilisateurs .role-badge {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#messageModal .contact-modal-content {
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+  overflow: hidden;
+}
+
+#messageModal #messageDetails {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px;
+}
+
+@media (min-width: 769px) {
+  #messageModal #messageDetails {
+    padding: 20px;
+  }
+
+  #tableauUtilisateurs td.user-info {
+    display: table-cell !important;
+    vertical-align: middle;
+    white-space: normal;
+  }
+
+  #tableauUtilisateurs td.user-info .user-avatar {
+    display: inline-flex;
+    vertical-align: middle;
+  }
+
+  #tableauUtilisateurs td.user-info .user-details {
+    display: inline-flex;
+    vertical-align: middle;
+    margin-left: 12px;
+  }
+
+  :is(
+      #tableauArticles,
+      #tableauProjets,
+      #tableauVideos,
+      #contactsTable,
+      #tableauCommentaires,
+      #tableauCorbeille,
+      #tableauUtilisateurs,
+      #tableauActualites
+    )
+    th,
+  :is(
+      #tableauArticles,
+      #tableauProjets,
+      #tableauVideos,
+      #contactsTable,
+      #tableauCommentaires,
+      #tableauCorbeille,
+      #tableauUtilisateurs,
+      #tableauActualites
+    )
+    td {
+    min-width: 0;
+  }
+
+  #tableauArticles td[data-col="image"],
+  #tableauProjets td[data-col="image"],
+  #tableauVideos td[data-col="image"],
+  #tableauActualites td[data-col="image"] {
+    text-align: center;
+    vertical-align: middle;
+    width: 1%;
+    min-width: 128px;
+  }
+
+  #tableauArticles td[data-col="titre"],
+  #tableauArticles td[data-col="description"],
+  #tableauProjets td[data-col="titre"],
+  #tableauProjets td[data-col="description"],
+  #tableauProjets td[data-col="technologies"],
+  #tableauVideos td[data-col="titre"],
+  #tableauVideos td[data-col="categorie"],
+  #contactsTable td[data-col="contact"],
+  #contactsTable td[data-col="sujet"],
+  #contactsTable td[data-col="message"],
+  #tableauCorbeille td[data-col="nom-titre"],
+  #tableauCorbeille td[data-col="description"],
+  #tableauActualites td[data-col="titre"],
+  #tableauActualites td[data-col="description"] {
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-break: normal;
+    hyphens: auto;
+  }
+
+  :is(
+      #tableauArticles,
+      #tableauProjets,
+      #tableauVideos,
+      #contactsTable,
+      #tableauCommentaires,
+      #tableauCorbeille,
+      #tableauUtilisateurs,
+      #tableauActualites
+    )
+    th.col-actions,
+  :is(
+      #tableauArticles,
+      #tableauProjets,
+      #tableauVideos,
+      #contactsTable,
+      #tableauCommentaires,
+      #tableauCorbeille,
+      #tableauUtilisateurs,
+      #tableauActualites
+    )
+    td[data-col="actions"] {
+    width: 1%;
+    min-width: 96px;
+    max-width: 120px;
+    white-space: nowrap;
+    text-align: center;
+    vertical-align: middle;
+  }
+
+  :is(
+      #tableauArticles,
+      #tableauProjets,
+      #tableauVideos,
+      #contactsTable,
+      #tableauCommentaires,
+      #tableauCorbeille,
+      #tableauUtilisateurs,
+      #tableauActualites
+    )
+    td[data-col="actions"]
+    .btn {
+    padding: 7px 8px;
+    margin-right: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+
+  :is(
+      #tableauArticles,
+      #tableauProjets,
+      #tableauVideos,
+      #contactsTable,
+      #tableauCommentaires,
+      #tableauCorbeille,
+      #tableauUtilisateurs,
+      #tableauActualites
+    )
+    td[data-col="actions"]
+    .btn:last-child {
+    margin-right: 0;
+  }
+
+  #tableauArticles td[data-col="date"],
+  #tableauProjets td[data-col="date"],
+  #tableauVideos td[data-col="date"],
+  #contactsTable td[data-col="date"],
+  #tableauCommentaires td[data-col="date"],
+  #tableauCorbeille td[data-col="supprime-le"],
+  #tableauUtilisateurs td[data-col="date"],
+  #tableauActualites td[data-col="date"] {
+    text-align: center;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1200px) {
+  .users-table table th,
+  .users-table table td {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  :is(
+      #tableauArticles,
+      #tableauProjets,
+      #tableauVideos,
+      #contactsTable,
+      #tableauCommentaires,
+      #tableauCorbeille,
+      #tableauActualites
+    )
+    th.col-actions,
+  :is(
+      #tableauArticles,
+      #tableauProjets,
+      #tableauVideos,
+      #contactsTable,
+      #tableauCommentaires,
+      #tableauCorbeille,
+      #tableauActualites
+    )
+    td[data-col="actions"] {
+    min-width: 92px;
+    max-width: 108px;
+  }
+
+  #tableauUtilisateurs th:nth-child(5),
+  #tableauUtilisateurs td:nth-child(5),
+  #tableauUtilisateurs th.col-actions,
+  #tableauUtilisateurs td[data-col="actions"] {
+    min-width: 96px;
+    max-width: 112px;
+  }
+
+  :is(
+      #tableauArticles,
+      #tableauProjets,
+      #tableauVideos,
+      #contactsTable,
+      #tableauCommentaires,
+      #tableauCorbeille,
+      #tableauUtilisateurs,
+      #tableauActualites
+    )
+    td[data-col="actions"]
+    .btn {
+    padding: 6px 7px;
+    margin-right: 3px;
+  }
+}

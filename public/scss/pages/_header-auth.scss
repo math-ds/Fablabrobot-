@@ -1,0 +1,74 @@
+.header-auth {
+  padding: 16px 0;
+  margin-bottom: 24px;
+}
+
+.header-auth .nav-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.header-auth .logo-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-auth .navbar-logo {
+  height: 42px;
+  width: auto;
+  filter: brightness(1.1);
+}
+
+.header-auth .brand-name {
+  font-size: 1.12rem;
+  font-weight: 700;
+  color: #ffffff;
+  text-decoration: none;
+  letter-spacing: 0.2px;
+  transition: color 0.3s ease;
+}
+
+.header-auth .brand-name:hover {
+  color: #00d4aa;
+}
+
+@media (min-width: 480px) {
+  .header-auth {
+    padding: 20px 0;
+    margin-bottom: 32px;
+  }
+
+  .header-auth .navbar-logo {
+    height: 50px;
+  }
+
+  .header-auth .brand-name {
+    font-size: 1.35rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .header-auth {
+    padding: 26px 0;
+    margin-bottom: 42px;
+  }
+
+  .header-auth .nav-container {
+    padding: 0 20px;
+  }
+
+  .header-auth .logo-section {
+    gap: 18px;
+  }
+
+  .header-auth .navbar-logo {
+    height: 60px;
+  }
+
+  .header-auth .brand-name {
+    font-size: 1.75rem;
+    letter-spacing: 0.5px;
+  }
+}

@@ -1,28 +1,24 @@
 <?php
-/* ============================================================
-   VUE : articles.php
-   Les données ($articles) sont transmises par ArticlesControleur->index()
-   Plus aucune connexion BDD ni requête SQL ici.
-   ============================================================ */
+
 
 $baseUrl = $GLOBALS['baseUrl'] ?? '/Fablabrobot/public/';
 
-// CSS et titre pour le header
+
 $titrePage = 'Articles - FABLAB';
-$pageCss = ['article.css'];
+$pageCss = ['article.css', 'listes-partagees.css', 'filtres-catalogue.css', 'cartes-partagees.css', 'modale-cartes.css', 'modale-creation-partagee.css', 'pagination.css'];
 
-include(__DIR__ . '/../parties/header.php');
+include(__DIR__ . '/../parties/public-layout-start.php');
+$utilisateurConnecte = $utilisateurConnecte ?? !empty($_SESSION['utilisateur_id']);
+$peutCreerArticle = $peutCreerArticle ?? false;
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
 
-$roleUtilisateur = $_SESSION['utilisateur_role'] ?? 'Visiteur';
-
-// $articles est fourni par le contrôleur — pas besoin de requête ici
 if (!isset($articles)) {
     $articles = [];
 }
+$categories = $categories ?? [];
+$q = trim((string)($_GET['q'] ?? ''));
+$categorieCourante = trim((string)($_GET['categorie'] ?? ''));
+$categorieActive = $categorieCourante === '' ? 'all' : $categorieCourante;
 ?>
 
 <section class="hero-section">
@@ -32,38 +28,113 @@ if (!isset($articles)) {
   </div>
 </section>
 
-<section class="section-recherche">
-  <div class="search-filter">
-    <input type="text" id="searchInput" placeholder="Rechercher un article...">
-    <select id="categoryFilter">
-      <option value="all">Toutes les catégories</option>
-    </select>
-  </div>
-</section>
-
-<?php if (in_array($roleUtilisateur, ['Éditeur', 'Editeur', 'Admin'])): ?>
+<?php if ($peutCreerArticle): ?>
   <div class="article-action">
-    <button onclick="ouvrirModaleArticle()" class="btn btn-primary">
+    <button type="button" class="btn btn-primary" data-article-open-creation="1">
       <i class="fas fa-plus-circle"></i> Créer un article
     </button>
   </div>
 <?php endif; ?>
+<div class="webtv-catalog-shell" id="articlesFilterShell">
+  <section class="webtv-toolbar-card" aria-label="Filtres catalogue articles">
+      <form method="get" class="webtv-filter-form" id="articlesFilterForm">
+        <input type="hidden" name="page" value="articles">
+        <label>
+          <span>Recherche</span>
+          <input type="search" id="searchInput" name="q" placeholder="Titre, contenu, auteur..." value="<?= htmlspecialchars($q, ENT_QUOTES, 'UTF-8') ?>">
+        </label>
+        <label>
+          <span>Catégorie</span>
+          <select id="categoryFilter" name="categorie">
+            <option value="all"<?= $categorieActive === 'all' ? ' selected' : '' ?>>Toutes les catégories</option>
+            <?php foreach ($categories as $categorie): ?>
+              <option value="<?= htmlspecialchars($categorie, ENT_QUOTES, 'UTF-8') ?>"<?= $categorieActive === $categorie ? ' selected' : '' ?>>
+                <?= htmlspecialchars($categorie) ?>
+              </option>
+            <?php endforeach; ?>
+          </select>
+        </label>
+        <div class="webtv-filter-actions">
+          <button type="submit" class="webtv-btn webtv-btn-primary">Filtrer</button>
+          <button type="button" id="resetFilters" class="webtv-btn webtv-btn-ghost">Réinitialiser</button>
+        </div>
+      </form>
+
+      <?php if (!empty($categories)): ?>
+        <?php
+          $paramsFiltresBase = ['page' => 'articles'];
+          if ($q !== '') {
+              $paramsFiltresBase['q'] = $q;
+          }
+        ?>
+        <div class="webtv-filter-tags" id="articlesFilterTags">
+          <a
+            href="?<?= htmlspecialchars(http_build_query($paramsFiltresBase), ENT_QUOTES, 'UTF-8') ?>"
+            data-categorie="all"
+            class="webtv-filter-tag<?= $categorieActive === 'all' ? ' is-active' : '' ?>">
+            Tout
+          </a>
+          <?php foreach ($categories as $categorie): ?>
+            <?php $paramsCategorie = $paramsFiltresBase; $paramsCategorie['categorie'] = (string)$categorie; ?>
+            <a
+              href="?<?= htmlspecialchars(http_build_query($paramsCategorie), ENT_QUOTES, 'UTF-8') ?>"
+              data-categorie="<?= htmlspecialchars($categorie, ENT_QUOTES, 'UTF-8') ?>"
+              class="webtv-filter-tag<?= $categorieActive === $categorie ? ' is-active' : '' ?>">
+              <?= htmlspecialchars($categorie) ?>
+            </a>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+  </section>
+</div>
 
 <main class="featured-section">
-  <h2 class="section-title">Articles Récents</h2>
-  <div class="projects-grid">
+  <?php
+    $articlesAffiches = count($articles);
+    $articlesTotal = (isset($pagination) && $pagination instanceof Pagination)
+        ? (int) $pagination->total()
+        : $articlesAffiches;
+  ?>
+  <section class="catalog-header-row">
+    <h2 class="section-title">Articles récents</h2>
+    <p id="articlesResultsText" class="catalog-results-counter" aria-live="polite" aria-atomic="true">
+      <?= $articlesAffiches ?> résultat<?= $articlesAffiches > 1 ? 's' : '' ?><?= $articlesTotal > $articlesAffiches ? ' sur ' . $articlesTotal . ' résultats' : '' ?>
+    </p>
+  </section>
+  <div class="projects-grid" id="articlesGrid" data-base-url="<?= htmlspecialchars($baseUrl, ENT_QUOTES, 'UTF-8') ?>">
     <?php if (empty($articles)): ?>
-      <div class="no-articles">
-        <div class="no-articles-icon">
+      <section class="catalog-empty-state">
+        <div class="catalog-empty-state-icon" aria-hidden="true">
           <i class="fas fa-newspaper"></i>
         </div>
-        <h3>Aucun article disponible</h3>
-        <p>Il n'y a pas encore d'articles publiés. Revenez bientôt !</p>
-      </div>
+        <p class="catalog-empty-title">Aucun article trouvé.</p>
+        <p>Essaie un autre mot-clé ou une autre catégorie pour élargir les résultats.</p>
+        <a href="?page=articles" class="catalog-empty-state-action">Voir catalogue</a>
+      </section>
     <?php else: ?>
       <?php foreach ($articles as $article): ?>
-        <div class="project-card">
+        <?php $articleCategorie = trim((string)($article['categorie'] ?? '')); ?>
+        <div class="project-card"
+             data-categorie="<?= htmlspecialchars($articleCategorie, ENT_QUOTES, 'UTF-8') ?>"
+             data-article-open-modal="<?= (int) $article['id']; ?>"
+             role="button"
+             tabindex="0"
+             aria-haspopup="dialog"
+             aria-controls="modal-article-<?= (int) $article['id']; ?>"
+             aria-label="Ouvrir les informations de l'article <?= htmlspecialchars($article['titre'], ENT_QUOTES, 'UTF-8') ?>">
           <div class="project-image">
+            <?php if ($utilisateurConnecte): ?>
+              <button
+                type="button"
+                class="favori-toggle <?= !empty($article['is_favori']) ? 'is-active' : '' ?>"
+                data-favori-toggle
+                data-favori-type="article"
+                data-favori-id="<?= (int)$article['id']; ?>"
+                aria-pressed="<?= !empty($article['is_favori']) ? 'true' : 'false' ?>"
+                title="<?= !empty($article['is_favori']) ? 'Retirer des favoris' : 'Ajouter aux favoris' ?>">
+                <i class="<?= !empty($article['is_favori']) ? 'fas' : 'far' ?> fa-heart" aria-hidden="true"></i>
+              </button>
+            <?php endif; ?>
             <?php if (!empty($article['image_url'])): ?>
               <?php
               $imageUrl = $article['image_url'];
@@ -74,19 +145,15 @@ if (!isset($articles)) {
               <img src="<?= htmlspecialchars($imageUrl); ?>"
                    alt="<?= htmlspecialchars($article['titre']); ?>"
                    loading="lazy"
-                   onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">
-              <div class="image-fallback" style="display:none; width:100%; height:100%; background:linear-gradient(135deg,#00afa7,#008f88); align-items:center; justify-content:center;">
-                <i class="fas fa-newspaper" style="font-size:3rem; color:white; opacity:0.7;"></i>
-              </div>
+                   class="js-fallback-next-image">
+              <i class="fas fa-code icone-fallback-cachee"></i>
             <?php else: ?>
-              <div style="width:100%; height:100%; background:linear-gradient(135deg,#00afa7,#008f88); display:flex; align-items:center; justify-content:center;">
-                <i class="fas fa-newspaper" style="font-size:3rem; color:white; opacity:0.7;"></i>
-              </div>
+              <i class="fas fa-code"></i>
             <?php endif; ?>
           </div>
 
           <div class="project-content">
-            <h3 class="project-title"><?= htmlspecialchars($article['titre']); ?></h3>
+            <p class="project-title"><?= htmlspecialchars($article['titre']); ?></p>
             <p class="project-description">
               <?php
               $extrait = substr(strip_tags($article['contenu']), 0, 120);
@@ -94,11 +161,11 @@ if (!isset($articles)) {
               ?>
             </p>
             <div class="project-tags">
-              <span class="tag">✍️ <?= htmlspecialchars($article['auteur']); ?></span>
-              <span class="tag">📅 <?= date('d/m/Y', strtotime($article['created_at'])); ?></span>
+              <span class="tag">Auteur : <?= htmlspecialchars($article['auteur_nom'] ?? ''); ?></span>
+              <span class="tag"><?= date('d/m/Y', strtotime($article['created_at'])); ?></span>
             </div>
             <div class="action-buttons">
-              <a href="?page=article-detail&id=<?= $article['id']; ?>" class="btn btn-primary">
+              <a href="?page=article-detail&id=<?= $article['id']; ?>" class="btn btn-primary js-stop-propagation">
                 <i class="fas fa-book-open"></i> Lire l'article
               </a>
             </div>
@@ -109,47 +176,130 @@ if (!isset($articles)) {
   </div>
 </main>
 
-<!-- MODALE CRÉATION ARTICLE -->
-<div id="modaleArticleCreation" class="modal-creation">
+<?php require __DIR__ . '/../parties/pagination.php'; ?>
+
+<?php foreach ($articles as $article): ?>
+<?php
+  $imageUrl = '';
+
+  if (!empty($article['image_url'])) {
+      if (preg_match('/^https?:\/\//i', $article['image_url'])) {
+          $imageUrl = $article['image_url'];
+      } else {
+          $imageUrl = $baseUrl . ltrim($article['image_url'], '/');
+      }
+  }
+?>
+<div class="modal modal-detail modal-article" id="modal-article-<?= (int) $article['id']; ?>" role="dialog" aria-modal="true" aria-hidden="true" aria-label="Détail article">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 class="modal-title"><?= htmlspecialchars($article['titre']); ?></h2>
+      <div class="modal-header-actions">
+        <?php if ($utilisateurConnecte): ?>
+          <button
+            type="button"
+            class="favori-toggle favori-toggle-detail <?= !empty($article['is_favori']) ? 'is-active' : '' ?>"
+            data-favori-toggle
+            data-favori-type="article"
+            data-favori-id="<?= (int)$article['id']; ?>"
+            aria-pressed="<?= !empty($article['is_favori']) ? 'true' : 'false' ?>"
+            title="<?= !empty($article['is_favori']) ? 'Retirer des favoris' : 'Ajouter aux favoris' ?>">
+            <i class="<?= !empty($article['is_favori']) ? 'fas' : 'far' ?> fa-heart" aria-hidden="true"></i>
+            <span data-favori-label><?= !empty($article['is_favori']) ? 'Retirer des favoris' : 'Ajouter aux favoris' ?></span>
+          </button>
+        <?php endif; ?>
+        <button type="button" class="close-btn" data-article-close-modal="<?= (int) $article['id']; ?>" aria-label="Fermer la modale">&times;</button>
+      </div>
+    </div>
+
+    <div class="modal-body">
+      <div class="modal-layout">
+        <div class="modal-image-section">
+          <div class="modal-image">
+            <?php if ($imageUrl !== ''): ?>
+              <img src="<?= htmlspecialchars($imageUrl); ?>"
+                   alt="<?= htmlspecialchars($article['titre']); ?>"
+                   class="js-fallback-next-image">
+              <i class="fas fa-code icone-fallback-cachee"></i>
+            <?php else: ?>
+              <i class="fas fa-code"></i>
+            <?php endif; ?>
+          </div>
+        </div>
+
+        <div class="modal-content-section">
+          <div class="modal-meta">
+            <div class="modal-meta-item">
+              <i class="fas fa-user"></i>
+              <span><?= htmlspecialchars($article['auteur_nom'] ?? ''); ?></span>
+            </div>
+            <div class="modal-meta-item">
+              <i class="fas fa-calendar"></i>
+              <span><?= date('d/m/Y', strtotime($article['created_at'])); ?></span>
+            </div>
+          </div>
+
+          <div class="action-buttons">
+            <a href="?page=article-detail&id=<?= (int) $article['id']; ?>" class="btn btn-primary">
+              <i class="fas fa-eye"></i> Voir l'article en detail
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<?php endforeach; ?>
+
+<div id="modaleArticleCreation" class="modal-creation" role="dialog" aria-modal="true" aria-hidden="true" aria-label="Création article">
   <div class="modal-creation-content">
     <div class="modal-creation-header">
       <div>
         <h2><i class="fas fa-pen-nib"></i> Créer un nouvel article</h2>
         <p>Remplissez le formulaire ci-dessous pour publier un nouveau article</p>
       </div>
-      <button class="close-modal-creation" onclick="fermerModaleArticle()">&times;</button>
+      <button type="button" class="close-modal-creation" data-article-close-creation="1" aria-label="Fermer la modale">&times;</button>
     </div>
 
     <div class="modal-creation-body">
-      <div id="alertArticle"></div>
-
-      <form id="formArticle">
+      <form id="formArticle" enctype="multipart/form-data">
         <?php require_once __DIR__ . '/../../helpers/CsrfHelper.php'; echo CsrfHelper::obtenirChampJeton(); ?>
 
         <div class="form-group">
-          <label>Titre *</label>
+          <label for="article_titre">Titre *</label>
           <input type="text" name="titre" id="article_titre" required minlength="5" maxlength="200" placeholder="Titre de l'article...">
-          <small id="titre_error" style="color: #ff6b6b; display: none;"></small>
+          <small id="titre_error" class="champ-erreur"></small>
         </div>
 
         <div class="form-group">
-          <label>Auteur *</label>
-          <input type="text" name="auteur" id="article_auteur" value="<?= htmlspecialchars($_SESSION['utilisateur_nom'] ?? '') ?>" required minlength="2" maxlength="100" placeholder="Votre nom...">
-          <small id="auteur_error" style="color: #ff6b6b; display: none;"></small>
+          <label for="article_auteur_affichage">Auteur</label>
+          <input type="text" id="article_auteur_affichage" value="<?= htmlspecialchars($_SESSION['utilisateur_nom'] ?? '', ENT_QUOTES, 'UTF-8') ?>" disabled>
         </div>
 
         <div class="form-group">
-          <label>Contenu *</label>
+          <label for="article_categorie">Catégorie</label>
+          <select name="categorie" id="article_categorie">
+            <option value="">€” Sans catégorie €”</option>
+            <?php foreach (($categories ?? []) as $categorieOption): ?>
+              <option value="<?= htmlspecialchars($categorieOption, ENT_QUOTES, 'UTF-8') ?>">
+                <?= htmlspecialchars($categorieOption) ?>
+              </option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="article_contenu">Contenu *</label>
           <textarea name="contenu" id="article_contenu" rows="10" required minlength="10" maxlength="10000" placeholder="Contenu de l'article..."></textarea>
-          <small id="contenu_error" style="color: #ff6b6b; display: none;"></small>
+          <small id="contenu_error" class="champ-erreur"></small>
         </div>
 
         <div class="form-group">
-          <label>URL de l'image (optionnel)</label>
-          <input type="text" name="image_url" id="article_image_url" placeholder="https://exemple.com/image.jpg" oninput="previewArticleImage(this.value)">
+          <label for="article_image_url">URL de l'image (optionnel)</label>
+          <input type="text" name="image_url" id="article_image_url" placeholder="https://exemple.com/image.jpg">
 
           <div class="info-box">
-            <strong>💡 Astuce :</strong> Vous pouvez coller n'importe quelle URL d'image depuis Google, Discord, etc.
+            <strong><i class="fas fa-lightbulb"></i> Astuce :</strong> Vous pouvez coller n'importe quelle URL d'image depuis Google, Discord, etc.
           </div>
 
           <div id="articleImagePreviewContainer" class="image-preview-container">
@@ -161,8 +311,25 @@ if (!isset($articles)) {
           </div>
         </div>
 
+        <div class="form-group">
+          <label for="article_image_file">OU uploader une image (optionnel)</label>
+          <input type="file" name="image" id="article_image_file" accept="image/*">
+
+          <div class="info-box">
+            <strong><i class="fas fa-upload"></i> Upload local :</strong> Si vous uploadez un fichier,
+            il sera prioritaire sur l'URL.
+          </div>
+
+          <div id="articleLocalPreviewContainer" class="image-preview-container">
+            <p class="apercu-titre">
+              <i class="fas fa-eye"></i> Aperçu du fichier :
+            </p>
+            <img id="articleLocalPreview" class="apercu-image-locale" alt="Aperçu local">
+          </div>
+        </div>
+
         <div class="form-actions">
-          <button type="button" class="btn btn-secondary" onclick="fermerModaleArticle()">
+          <button type="button" class="btn btn-secondary" data-article-close-creation="1">
             <i class="fas fa-times"></i> Annuler
           </button>
           <button type="submit" class="btn btn-primary">
@@ -174,224 +341,10 @@ if (!isset($articles)) {
   </div>
 </div>
 
-<script>
-// Recherche et filtrage
-document.addEventListener('DOMContentLoaded', () => {
-  const searchInput = document.getElementById("searchInput");
-  const categoryFilter = document.getElementById("categoryFilter");
-  const cards = document.querySelectorAll(".project-card");
+<?php $publicScripts = ['js/articles-page.js', 'js/articles-catalogue.js']; ?>
 
-  function filtrer() {
-    const searchText = searchInput.value.toLowerCase();
-    const selectedCategory = categoryFilter.value.toLowerCase();
+<?php include(__DIR__ . '/../parties/public-layout-end.php'); ?>
 
-    cards.forEach(card => {
-      const title = card.querySelector(".project-title").textContent.toLowerCase();
-      const description = card.querySelector(".project-description").textContent.toLowerCase();
-      const category = card.dataset.categorie?.toLowerCase() || "autre";
 
-      const matchTexte = title.includes(searchText) || description.includes(searchText);
-      const matchCategorie = selectedCategory === "all" || category === selectedCategory;
 
-      card.style.display = (matchTexte && matchCategorie) ? "block" : "none";
-    });
-  }
 
-  searchInput.addEventListener("input", filtrer);
-  categoryFilter.addEventListener("change", filtrer);
-});
-
-// Gestion modale article
-window.ouvrirModaleArticle = function() {
-  const modal = document.getElementById('modaleArticleCreation');
-  const form = document.getElementById('formArticle');
-  const alert = document.getElementById('alertArticle');
-  const preview = document.getElementById('articleImagePreviewContainer');
-
-  if (!modal) {
-    console.error('Modale article non trouvée');
-    return;
-  }
-
-  modal.classList.add('active');
-  if (form) form.reset();
-  if (alert) alert.innerHTML = '';
-  if (preview) preview.classList.remove('active');
-};
-
-window.fermerModaleArticle = function() {
-  const modal = document.getElementById('modaleArticleCreation');
-  if (modal) {
-    modal.classList.remove('active');
-  }
-};
-
-// Fermer avec Escape
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    const modal = document.getElementById('modaleArticleCreation');
-    if (modal && modal.classList.contains('active')) {
-      window.fermerModaleArticle();
-    }
-  }
-});
-
-// Fermer en cliquant à l'extérieur
-document.addEventListener('click', function(event) {
-  const modal = document.getElementById('modaleArticleCreation');
-  if (event.target === modal) {
-    window.fermerModaleArticle();
-  }
-});
-
-// Preview image
-let articleImageTimeout = null;
-function previewArticleImage(url) {
-  const preview = document.getElementById('articleImagePreview');
-  const container = document.getElementById('articleImagePreviewContainer');
-  const spinner = document.getElementById('articleLoadingSpinner');
-
-  if (articleImageTimeout) clearTimeout(articleImageTimeout);
-
-  container.classList.remove('active');
-  spinner.classList.remove('active');
-
-  if (url && url.trim() !== '') {
-    container.classList.add('active');
-    spinner.classList.add('active');
-    preview.style.opacity = '0.3';
-
-    articleImageTimeout = setTimeout(() => {
-      spinner.classList.remove('active');
-      preview.style.opacity = '1';
-    }, 5000);
-
-    preview.src = url;
-    preview.onload = () => {
-      clearTimeout(articleImageTimeout);
-      spinner.classList.remove('active');
-      preview.style.opacity = '1';
-    };
-    preview.onerror = () => {
-      clearTimeout(articleImageTimeout);
-      spinner.classList.remove('active');
-      container.classList.remove('active');
-    };
-  }
-}
-
-// Validation côté client
-function validerFormArticle() {
-  const titre = document.getElementById('article_titre');
-  const auteur = document.getElementById('article_auteur');
-  const contenu = document.getElementById('article_contenu');
-  let isValid = true;
-
-  // Reset erreurs
-  document.querySelectorAll('small[id$="_error"]').forEach(el => el.style.display = 'none');
-
-  // Validation titre
-  if (titre.value.trim().length < 5 || titre.value.trim().length > 200) {
-    document.getElementById('titre_error').textContent = 'Le titre doit contenir entre 5 et 200 caractères';
-    document.getElementById('titre_error').style.display = 'block';
-    isValid = false;
-  }
-
-  // Validation auteur
-  if (auteur.value.trim().length < 2 || auteur.value.trim().length > 100) {
-    document.getElementById('auteur_error').textContent = "L'auteur doit contenir entre 2 et 100 caractères";
-    document.getElementById('auteur_error').style.display = 'block';
-    isValid = false;
-  }
-
-  // Validation contenu
-  if (contenu.value.trim().length < 10 || contenu.value.trim().length > 10000) {
-    document.getElementById('contenu_error').textContent = 'Le contenu doit contenir entre 10 et 10 000 caractères';
-    document.getElementById('contenu_error').style.display = 'block';
-    isValid = false;
-  }
-
-  return isValid;
-}
-
-// Soumission formulaire AJAX avec sécurité
-let articleSubmitting = false;
-const formArticle = document.getElementById('formArticle');
-if (formArticle) {
-  formArticle.addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    // Empêcher la double soumission - vérifier IMMÉDIATEMENT
-    if (articleSubmitting) {
-      console.warn('Soumission déjà en cours, ignorée');
-      return;
-    }
-
-    // Désactiver IMMÉDIATEMENT le bouton avant toute validation
-    const submitBtn = e.target.querySelector('button[type="submit"]');
-    const alertDiv = document.getElementById('alertArticle');
-
-    articleSubmitting = true;
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Publication...';
-
-    // Validation côté client
-    if (!validerFormArticle()) {
-      // Réactiver le bouton si la validation échoue
-      articleSubmitting = false;
-      submitBtn.disabled = false;
-      submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Publier';
-      return;
-    }
-
-    const formData = new FormData(e.target);
-
-  try {
-    // Récupérer le token CSRF du meta tag
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-
-    const response = await fetch('?page=article_enregistrer', {
-      method: 'POST',
-      body: formData,
-      headers: {
-        'X-Requested-With': 'XMLHttpRequest',
-        ...(csrfToken && { 'X-CSRF-Token': csrfToken })
-      },
-      credentials: 'same-origin'
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const result = await response.json();
-
-    if (result.success) {
-      alertDiv.innerHTML = `<div class="alert-modal alert-success">${result.message}</div>`;
-      e.target.reset();
-      setTimeout(() => {
-        fermerModaleArticle();
-        location.reload();
-      }, 1500);
-    } else {
-      alertDiv.innerHTML = `<div class="alert-modal alert-danger">${result.message || 'Une erreur est survenue'}</div>`;
-    }
-  } catch (error) {
-    console.error('Erreur:', error);
-    alertDiv.innerHTML = '<div class="alert-modal alert-danger">Erreur lors de la publication de l\'article. Veuillez réessayer.</div>';
-  } finally {
-    articleSubmitting = false;
-    submitBtn.disabled = false;
-    submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Publier';
-  }
-  });
-} else {
-  console.error('Formulaire article non trouvé');
-}
-
-console.log('Script modale article chargé');
-console.log('Modale article:', document.getElementById('modaleArticleCreation'));
-console.log('Formulaire article:', document.getElementById('formArticle'));
-</script>
-
-<?php include(__DIR__ . '/../parties/footer.php'); ?>

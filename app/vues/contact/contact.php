@@ -1,13 +1,13 @@
 <?php
 $baseUrl = $GLOBALS['baseUrl'] ?? '/Fablabrobot/public/';
-include(__DIR__ . '/../parties/header.php');
+require_once __DIR__ . '/../../helpers/CsrfHelper.php';
+$titrePage = 'Contact - FABLAB';
+$pageCss = ['listes-partagees.css', 'contact.css'];
+include(__DIR__ . '/../parties/public-layout-start.php');
 ?>
 
-<link rel="stylesheet" href="<?= $baseUrl ?>css/contact.css">
-
-<main class="main-container">
-  <section class="hero-section">
-    <div class="hero-content">
+<section class="hero-section">
+  <div class="hero-content">
       <h1 class="hero-title">Contactez-nous</h1>
       <p class="hero-subtitle">
         Vous avez une question, une suggestion ou souhaitez signaler un problème ?
@@ -16,6 +16,7 @@ include(__DIR__ . '/../parties/header.php');
     </div>
   </section>
 
+<main class="main-container">
   <div class="contact-card">
     <?php if ($message_sent): ?>
       <div class="alert alert-success">
@@ -29,8 +30,8 @@ include(__DIR__ . '/../parties/header.php');
       </div>
     <?php endif; ?>
 
-    <form method="POST" action="" id="contactForm" class="contact-form">
-      <input type="hidden" name="csrf_token" value="<?= $csrf_token ?? '' ?>">
+    <form method="POST" action="?page=contact" id="contactForm" class="contact-form">
+      <?= CsrfHelper::obtenirChampJeton(); ?>
 
       <div class="form-group contact-name-group">
         <label for="name" class="form-label contact-label">Nom complet *</label>
@@ -62,11 +63,10 @@ include(__DIR__ . '/../parties/header.php');
                   placeholder="Décrivez votre message en détail..." required maxlength="1000"><?= $_POST['message'] ?? '' ?></textarea>
       </div>
 
-      <button type="submit" class="btn btn-primary contact-submit-btn">Envoyer le message</button>
+      <button type="submit" class="btn btn-primary contact-submit-btn" id="contactSubmitBtn">Envoyer le message</button>
     </form>
   </div>
 
-  <!-- Informations de contact -->
   <div class="contact-info">
     <h2 class="contact-info-title">Informations de contact</h2>
     <div class="contact-info-grid">
@@ -86,23 +86,6 @@ include(__DIR__ . '/../parties/header.php');
   </div>
 </main>
 
-<?php if ($message_sent): ?>
-<script>
-setTimeout(() => {
-  window.location.href = '<?= $baseUrl ?>';
-}, 5000);
-</script>
-<?php endif; ?>
+<?php $publicScripts = ['js/contact-page.js']; ?>
 
-<script>
-const inputs = document.querySelectorAll('input, textarea, select');
-inputs.forEach(input => {
-  input.addEventListener('blur', () => {
-    input.style.borderColor = input.value.trim() ? 'var(--primary-color)' : 'rgba(255, 255, 255, 0.1)';
-  });
-});
-const messages = document.querySelectorAll('.message');
-messages.forEach(m => setTimeout(() => m.style.display = 'none', 5000));
-</script>
-
-<?php include(__DIR__ . '/../parties/footer.php'); ?>
+<?php include(__DIR__ . '/../parties/public-layout-end.php'); ?>

@@ -6,6 +6,12 @@ function isActive($page, $current_page) {
 }
 ?>
 
+<div class="sidebar-logo">
+  <a href="?page=accueil">
+    <img src="images/global/ajc_logo_blanc.png" alt="AJC Logo">
+  </a>
+</div>
+
 <nav class="sidebar-nav">
   <a href="?page=admin" class="<?= isActive('admin', $current_page) ?>">
     <i class="fas fa-home"></i> Dashboard
@@ -13,10 +19,13 @@ function isActive($page, $current_page) {
   <a href="?page=admin-articles" class="<?= isActive('admin-articles', $current_page) ?>">
     <i class="fas fa-newspaper"></i> Articles
   </a>
+  <a href="?page=admin-actualites" class="<?= isActive('admin-actualites', $current_page) ?>">
+    <i class="fas fa-rss"></i> Actualités
+  </a>
   <a href="?page=admin-projets" class="<?= isActive('admin-projets', $current_page) ?>">
     <i class="fas fa-project-diagram"></i> Projets
   </a>
-  <a href="?page=utilisateurs-admin" class="<?= isActive('utilisateurs-admin', $current_page) ?>">
+  <a href="?page=admin-utilisateurs" class="<?= in_array($current_page, ['admin-utilisateurs', 'utilisateurs-admin'], true) ? 'active' : '' ?>">
     <i class="fas fa-users"></i> Utilisateurs
   </a>
   <a href="?page=admin-contact" class="<?= isActive('admin-contact', $current_page) ?>">

@@ -1,69 +1,22 @@
 <?php
 $baseUrl = $GLOBALS['baseUrl'] ?? '/Fablabrobot/public/';
+require_once __DIR__ . '/../../helpers/CsrfHelper.php';
+require_once __DIR__ . '/../../helpers/AvatarHelper.php';
+require_once __DIR__ . '/../../helpers/RoleHelper.php';
 
 $utilisateurConnecte = isset($_SESSION['utilisateur_id']);
 $nomUtilisateur = $utilisateurConnecte ? $_SESSION['utilisateur_nom'] : '';
 $roleUtilisateur = $utilisateurConnecte ? ($_SESSION['utilisateur_role'] ?? 'Utilisateur') : '';
 $photoUtilisateur = $utilisateurConnecte ? ($_SESSION['utilisateur_photo'] ?? null) : null;
 
-function genererInitiales($nom)
-{
-    if (empty($nom)) return 'US';
-    $parties = preg_split('/\s+/', trim($nom));
-    return (count($parties) >= 2)
-        ? strtoupper(substr($parties[0], 0, 1) . substr($parties[count($parties) - 1], 0, 1))
-        : strtoupper(substr($parties[0], 0, 2));
-}
+$avatarUtilisateur = AvatarHelper::construireDonnees($nomUtilisateur, $photoUtilisateur, $baseUrl);
 
-function genererCouleur($nom)
-{
-    $hash = abs(crc32($nom));
-    $couleurs = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2'];
-    return $couleurs[$hash % count($couleurs)];
-}
-
-$initiales = genererInitiales($nomUtilisateur);
-$couleurAvatar = genererCouleur($nomUtilisateur);
-
-$photoPath = __DIR__ . '/../../../public/uploads/profils/' . $photoUtilisateur;
-$hasPhoto = !empty($photoUtilisateur) && file_exists($photoPath);
-
-$titrePage = $titrePage ?? 'AJC FABLAB';
-$pageCss = $pageCss ?? [];
 ?>
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><?= htmlspecialchars($titrePage) ?></title>
-
-  <!-- Import de polices -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-
-  <!-- Frameworks -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-
-  <!-- ⭐ SYSTÈME DE DESIGN CSS - TOUJOURS EN PREMIER -->
-  <link rel="stylesheet" href="<?= $baseUrl ?>css/global.css">
-
-  <!-- CSS compilé depuis SCSS -->
-  <link rel="stylesheet" href="<?= $baseUrl ?>css/header.css">
-  <link rel="stylesheet" href="<?= $baseUrl ?>css/footer.css">
-
-  <!-- CSS spécifiques à la page -->
-  <?php foreach ($pageCss as $css): ?>
-    <link rel="stylesheet" href="<?= $baseUrl ?>css/<?= htmlspecialchars($css) ?>">
-  <?php endforeach; ?>
-</head>
-
-<body>
   <header>
     <nav class="barre-navigation" role="navigation" aria-label="Navigation principale">
       <div class="conteneur-navigation">
 
-        <button class="bouton-menu" id="boutonMenu" aria-label="Ouvrir le menu de navigation" aria-expanded="false">
+        <button class="bouton-menu" id="boutonMenu" aria-label="Ouvrir le menu de navigation" aria-expanded="false" aria-controls="menuMobile">
           <i class="fas fa-bars"></i>
         </button>
 
@@ -74,6 +27,7 @@ $pageCss = $pageCss ?? [];
         <div class="liens-navigation">
           <a href="?page=accueil" class="lien-nav">Accueil</a>
           <a href="?page=articles" class="lien-nav">Articles</a>
+          <a href="?page=actualites" class="lien-nav">Actualités</a>
           <a href="?page=projets" class="lien-nav">Projets</a>
           <a href="?page=webtv" class="lien-nav">WebTV</a>
           <a href="?page=contact" class="lien-nav">Contact</a>
@@ -83,11 +37,11 @@ $pageCss = $pageCss ?? [];
           <?php if ($utilisateurConnecte): ?>
             <div class="profil-container">
               <button class="profil-trigger" id="profilTrigger" aria-label="Ouvrir le menu profil" aria-expanded="false">
-                <?php if ($hasPhoto): ?>
-                  <img src="<?= $baseUrl ?>uploads/profils/<?= htmlspecialchars($photoUtilisateur); ?>" class="user-avatar" alt="Photo de profil de <?= htmlspecialchars($nomUtilisateur) ?>">
+                <?php if ($avatarUtilisateur['has_photo']): ?>
+                  <img src="<?= htmlspecialchars($avatarUtilisateur['photo_url']) ?>" class="user-avatar" alt="Photo de profil de <?= htmlspecialchars($nomUtilisateur) ?>">
                 <?php else: ?>
-                  <div class="initials-avatar" style="background: <?= $couleurAvatar; ?>;">
-                    <?= htmlspecialchars($initiales); ?>
+                  <div class="initials-avatar <?= htmlspecialchars((string)($avatarUtilisateur['classe_couleur'] ?? 'avatar-couleur-1'), ENT_QUOTES, 'UTF-8') ?>">
+                    <?= htmlspecialchars($avatarUtilisateur['initiales']); ?>
                   </div>
                 <?php endif; ?>
                 <div class="profil-info">
@@ -103,11 +57,17 @@ $pageCss = $pageCss ?? [];
                 </div>
                 <ul class="profil-dropdown-menu">
                   <li><a href="?page=profil" class="profil-dropdown-item"><i class="fas fa-user"></i> Mon profil</a></li>
-                  <?php if (strtolower($roleUtilisateur) === 'admin'): ?>
+                  <li><a href="?page=favoris" class="profil-dropdown-item"><i class="fas fa-heart"></i> Mes favoris</a></li>
+                  <?php if (RoleHelper::estAdmin($roleUtilisateur)): ?>
                     <li><a href="?page=admin" class="profil-dropdown-item"><i class="fas fa-shield-alt"></i> Tableau de bord</a></li>
                   <?php endif; ?>
                   <li class="profil-dropdown-divider"></li>
-                  <li><a href="?page=logout" class="profil-dropdown-item danger"><i class="fas fa-sign-out-alt"></i> Déconnexion</a></li>
+                  <li>
+                    <form method="POST" action="?page=logout" class="m-0">
+                      <?= CsrfHelper::obtenirChampJeton(); ?>
+                      <a href="#" class="profil-dropdown-item danger" data-submit-parent-form="1" role="button" aria-label="Se déconnecter"><i class="fas fa-sign-out-alt"></i> Déconnexion</a>
+                    </form>
+                  </li>
                 </ul>
               </div>
             </div>
@@ -118,10 +78,10 @@ $pageCss = $pageCss ?? [];
         </div>
       </div>
 
-      <!-- Menu mobile -->
-      <div class="menu-mobile" id="menuMobile" role="menu">
+      <div class="menu-mobile" id="menuMobile" role="navigation" aria-label="Navigation mobile" aria-hidden="true" inert>
         <a href="?page=accueil" class="lien-nav">Accueil</a>
         <a href="?page=articles" class="lien-nav">Articles</a>
+        <a href="?page=actualites" class="lien-nav">Actualités</a>
         <a href="?page=projets" class="lien-nav">Projets</a>
         <a href="?page=webtv" class="lien-nav">WebTV</a>
         <a href="?page=contact" class="lien-nav">Contact</a>
@@ -129,11 +89,11 @@ $pageCss = $pageCss ?? [];
         <div class="menu-mobile-auth">
           <?php if ($utilisateurConnecte): ?>
             <div class="profil-mobile">
-              <?php if ($hasPhoto): ?>
-                <img src="<?= $baseUrl ?>uploads/profils/<?= htmlspecialchars($photoUtilisateur); ?>" class="user-avatar-mobile" alt="Photo de profil">
+              <?php if ($avatarUtilisateur['has_photo']): ?>
+                <img src="<?= htmlspecialchars($avatarUtilisateur['photo_url']) ?>" class="user-avatar-mobile" alt="Photo de profil">
               <?php else: ?>
-                <div class="initials-avatar-mobile" style="background: <?= $couleurAvatar; ?>;">
-                  <?= htmlspecialchars($initiales); ?>
+                <div class="initials-avatar-mobile <?= htmlspecialchars((string)($avatarUtilisateur['classe_couleur'] ?? 'avatar-couleur-1'), ENT_QUOTES, 'UTF-8') ?>">
+                  <?= htmlspecialchars($avatarUtilisateur['initiales']); ?>
                 </div>
               <?php endif; ?>
               <div>
@@ -142,48 +102,21 @@ $pageCss = $pageCss ?? [];
               </div>
             </div>
             <a href="?page=profil" class="lien-nav">Mon profil</a>
-            <?php if (strtolower($roleUtilisateur) === 'admin'): ?>
+            <a href="?page=favoris" class="lien-nav">Mes favoris</a>
+            <?php if (RoleHelper::estAdmin($roleUtilisateur)): ?>
               <a href="?page=admin" class="lien-nav">Tableau de bord</a>
             <?php endif; ?>
-            <a href="?page=logout" class="lien-nav btn-inscription">Déconnexion</a>
+            <form method="POST" action="?page=logout" class="m-0 w-full">
+              <?= CsrfHelper::obtenirChampJeton(); ?>
+              <a href="#" class="lien-nav btn-inscription" data-submit-parent-form="1" role="button" aria-label="Se déconnecter">Déconnexion</a>
+            </form>
           <?php else: ?>
             <a href="?page=login" class="lien-nav">Se connecter</a>
             <a href="?page=inscription" class="lien-nav btn-inscription">S'inscrire</a>
           <?php endif; ?>
         </div>
       </div>
+
+      <div class="menu-mobile-backdrop" id="menuMobileBackdrop" aria-hidden="true"></div>
     </nav>
   </header>
-
-  <script>
-    const boutonMenu = document.getElementById("boutonMenu");
-    const menuMobile = document.getElementById("menuMobile");
-    const profilTrigger = document.getElementById("profilTrigger");
-    const profilDropdown = document.getElementById("profilDropdown");
-
-    boutonMenu?.addEventListener("click", () => {
-      const estOuvert = menuMobile.classList.toggle("active");
-      boutonMenu.setAttribute("aria-expanded", estOuvert);
-    });
-
-    document.querySelectorAll(".menu-mobile .lien-nav").forEach(lien => {
-      lien.addEventListener("click", () => {
-        menuMobile.classList.remove("active");
-        boutonMenu.setAttribute("aria-expanded", "false");
-      });
-    });
-
-    if (profilTrigger) {
-      profilTrigger.addEventListener("click", (e) => {
-        e.stopPropagation();
-        const estOuvert = profilDropdown.classList.toggle("active");
-        profilTrigger.setAttribute("aria-expanded", estOuvert);
-      });
-      document.addEventListener("click", (e) => {
-        if (!profilTrigger.contains(e.target) && !profilDropdown.contains(e.target)) {
-          profilDropdown.classList.remove("active");
-          profilTrigger.setAttribute("aria-expanded", "false");
-        }
-      });
-    }
-  </script>
