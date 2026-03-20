@@ -321,13 +321,13 @@ class ProjetsControleur
             return 'Impression 3D';
         }
         if (str_contains($txt, 'electro') || str_contains($txt, 'electronique') || str_contains($txt, 'capteur') || str_contains($txt, 'circuit')) {
-            return 'Électronique';
+            return 'Electronique';
         }
         if (str_contains($txt, 'code') || str_contains($txt, 'dev') || str_contains($txt, 'python') || str_contains($txt, 'javascript') || str_contains($txt, 'programm')) {
             return 'Programmation';
         }
         if (str_contains($txt, 'mecanique') || str_contains($txt, 'chassis') || str_contains($txt, 'engrenage')) {
-            return 'Mécanique';
+            return 'Mecanique';
         }
         if (str_contains($txt, 'robot') || str_contains($txt, 'moteur') || str_contains($txt, 'arduino') || str_contains($txt, 'servo')) {
             return 'Robotique';

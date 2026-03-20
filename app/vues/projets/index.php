@@ -6,7 +6,7 @@ $categorieCourante = isset($categorieCourante) ? trim((string)$categorieCourante
 if ($categorieCourante === '') {
     $categorieCourante = 'all';
 }
-$categoriesProjet = $categoriesProjet ?? ['Robotique', 'Drone / FPV', 'Impression 3D', 'Électronique', 'Programmation', 'Mécanique', 'Autre'];
+$categoriesProjet = $categoriesProjet ?? ['Robotique', 'Drone / FPV', 'Impression 3D', 'Electronique', 'Programmation', 'Mecanique', 'Autre'];
 
 require __DIR__ . '/../parties/public-layout-start.php';
 $utilisateurConnecte = $utilisateurConnecte ?? !empty($_SESSION['utilisateur_id']);

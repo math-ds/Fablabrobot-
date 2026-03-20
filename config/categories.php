@@ -14,22 +14,24 @@ class CategorieConfig
             : strtolower($value);
 
         $simple = strtr($lower, [
-            '�' => 'a', '�' => 'a', '�' => 'a', '�' => 'a', '�' => 'a',
-            '�' => 'c',
-            '�' => 'e', '�' => 'e', '�' => 'e', '�' => 'e',
-            '�' => 'i', '�' => 'i', '�' => 'i', '�' => 'i',
-            '�' => 'o', '�' => 'o', '�' => 'o', '�' => 'o', '�' => 'o',
-            '�' => 'u', '�' => 'u', '�' => 'u', '�' => 'u',
-            '�' => 'y', '�' => 'y',
-            '�' => 'oe', '�' => 'ae',
-            "'" => ' ', '�' => ' ',
+            'à' => 'a', 'â' => 'a', 'ä' => 'a', 'á' => 'a', 'ã' => 'a', 'å' => 'a',
+            'ç' => 'c',
+            'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e',
+            'í' => 'i', 'ì' => 'i', 'î' => 'i', 'ï' => 'i',
+            'ó' => 'o', 'ò' => 'o', 'ô' => 'o', 'ö' => 'o', 'õ' => 'o',
+            'ú' => 'u', 'ù' => 'u', 'û' => 'u', 'ü' => 'u',
+            'ý' => 'y', 'ÿ' => 'y',
+            'œ' => 'oe', 'æ' => 'ae',
+            "'" => ' ', '’' => ' ',
+            'ï¿½' => 'e',
+            'ã©' => 'e', 'ã¨' => 'e', 'ãª' => 'e', 'ã«' => 'e',
+            'ã‰' => 'e', 'ã´' => 'o', 'ã®' => 'i', 'ã¯' => 'i', 'ã ' => 'a',
         ]);
 
         $simple = preg_replace('/\s+/', ' ', $simple ?? '');
         return trim((string)$simple);
     }
 
-    
     private static function normaliserSelonMap(string $value, array $map, array $categories, bool $allAsNull = false): ?string
     {
         $value = trim($value);
@@ -64,15 +66,14 @@ class CategorieConfig
         return null;
     }
 
-    
     public static function articlesDisponibles(): array
     {
         return [
             'Robotique',
-            '�lectronique',
+            'Electronique',
             'Programmation',
             'Impression 3D',
-            'M�canique',
+            'Mecanique',
             'Conception',
             'Intelligence Artificielle',
             'Autre',
@@ -81,14 +82,12 @@ class CategorieConfig
 
     public static function normaliserArticle(string $categorie): ?string
     {
-        $electronique = '�lectronique';
-        $mecanique = 'M�canique';
         $map = [
             'robotique' => 'Robotique',
-            'electronique' => $electronique,
+            'electronique' => 'Electronique',
             'programmation' => 'Programmation',
             'impression 3d' => 'Impression 3D',
-            'mecanique' => $mecanique,
+            'mecanique' => 'Mecanique',
             'conception' => 'Conception',
             'intelligence artificielle' => 'Intelligence Artificielle',
             'autre' => 'Autre',
@@ -97,32 +96,29 @@ class CategorieConfig
         return self::normaliserSelonMap($categorie, $map, self::articlesDisponibles(), false);
     }
 
-    
     public static function projetsDisponibles(): array
     {
         return [
             'Robotique',
             'Drone / FPV',
             'Impression 3D',
-            '�lectronique',
+            'Electronique',
             'Programmation',
-            'M�canique',
+            'Mecanique',
             'Autre',
         ];
     }
 
     public static function normaliserProjet(string $categorie): ?string
     {
-        $electronique = '�lectronique';
-        $mecanique = 'M�canique';
         $map = [
             'robotique' => 'Robotique',
             'drone' => 'Drone / FPV',
             'drone / fpv' => 'Drone / FPV',
             'impression 3d' => 'Impression 3D',
-            'electronique' => $electronique,
+            'electronique' => 'Electronique',
             'programmation' => 'Programmation',
-            'mecanique' => $mecanique,
+            'mecanique' => 'Mecanique',
             'autre' => 'Autre',
             'autres' => 'Autre',
         ];
@@ -130,7 +126,6 @@ class CategorieConfig
         return self::normaliserSelonMap($categorie, $map, self::projetsDisponibles(), true);
     }
 
-    
     public static function videosDisponibles(): array
     {
         return [

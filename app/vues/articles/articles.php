@@ -277,9 +277,9 @@ $categorieActive = $categorieCourante === '' ? 'all' : $categorieCourante;
         </div>
 
         <div class="form-group">
-          <label for="article_categorie">Catégorie</label>
+          <label for="article_categorie">Categorie</label>
           <select name="categorie" id="article_categorie">
-            <option value="">€” Sans catégorie €”</option>
+            <option value="">-- Sans categorie --</option>
             <?php foreach (($categories ?? []) as $categorieOption): ?>
               <option value="<?= htmlspecialchars($categorieOption, ENT_QUOTES, 'UTF-8') ?>">
                 <?= htmlspecialchars($categorieOption) ?>
